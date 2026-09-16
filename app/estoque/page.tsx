@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import PainelVidro from "@/components/ui/PainelVidro";
 import { DEMO, supabase } from "@/lib/supabase";
 import { PRODUTOS_DEMO } from "@/lib/dados-demo";
@@ -36,9 +37,25 @@ export default function EstoquePage() {
 
   return (
     <div className="flex flex-col gap-6 pt-4">
-      <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Estoque</h1>
-        <p className="mt-1 text-sm text-zinc-400">{produtos?.length ?? "…"} peças cadastradas</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Estoque</h1>
+          <p className="mt-1 text-sm text-zinc-400">{produtos?.length ?? "…"} peças cadastradas</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/estoque/cadastro-rapido"
+            className="vidro-garagem rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-200 hover:text-white"
+          >
+            Cadastro Rápido
+          </Link>
+          <Link
+            href="/estoque/importar-nota"
+            className="vidro-garagem rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-200 hover:text-white"
+          >
+            Entrada por NF
+          </Link>
+        </div>
       </div>
 
       <input

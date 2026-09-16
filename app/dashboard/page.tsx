@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PainelVidro from "@/components/ui/PainelVidro";
+import TrancaDashboard from "@/components/ui/TrancaDashboard";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
 import { brl, COLUNAS_KANBAN, STATUS_COR, STATUS_LABEL, type OrdemServico } from "@/lib/tipos";
 
 export default function DashboardPage() {
+  return (
+    <TrancaDashboard>
+      <ConteudoDashboard />
+    </TrancaDashboard>
+  );
+}
+
+function ConteudoDashboard() {
   const [ordens, setOrdens] = useState<OrdemServico[] | null>(null);
   const [dias, setDias] = useState(30);
 

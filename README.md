@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## TECNOMOTOS
 
+### Configurar a leitura de placa/etiqueta por câmera (Gemini)
+1. Entre em [aistudio.google.com/apikey](https://aistudio.google.com/apikey) com uma conta Google e gere uma chave — a camada gratuita cobre esse uso tranquilamente.
+2. Adicione ao `.env.local` (e nas variáveis de ambiente da Vercel):
+   ```
+   GEMINI_API_KEY=sua-chave-aqui
+   ```
+   **Sem o prefixo `NEXT_PUBLIC_`** — essa chave só deve existir no servidor (`app/api/ler-imagem/route.ts`). Se ela tivesse o prefixo `NEXT_PUBLIC_`, apareceria no navegador de qualquer pessoa que abrisse o app.
+3. Modelo usado: `gemini-3.1-flash-lite` — estável desde maio/2026, com camada gratuita. (O `gemini-2.5-flash` da versão antiga em HTML está com desligamento agendado para 16/out/2026, por isso a troca.)
+4. Testado de verdade contra a API do Google nesta rodada — sem chave configurada, o app avisa e deixa preencher manualmente; com uma chave inválida, mostra o erro exato que o Google devolve.
+
 ### Configurar o Supabase de verdade
 Crie um arquivo `.env.local` na raiz com:
 ```
@@ -13,16 +23,15 @@ Sem isso, o app roda em **modo demonstração** (`lib/supabase.ts` detecta a aus
 Tabelas esperadas no Supabase: `ordens_servico`, `veiculos`, `clientes`, `os_itens`, `vw_estoque` (view de produtos com saldo calculado) — os mesmos nomes e campos do app original.
 
 ### O que já está pronto
-Home, Entrada de veículo (por formulário), Ordens de Serviço (quadro com tempo real do Supabase), detalhe da OS com troca de situação, Estoque, Dashboard — todas de vidro fosco sobre o degradê, com a caveira 3D e a placa de trilha nos botões.
+Home, Entrada de veículo com foto de placa lida pela Gemini, Cadastro rápido de peça com foto de etiqueta lida pela Gemini, Ordens de Serviço (quadro com tempo real do Supabase), detalhe da OS com troca de situação (com botão de salvar), Estoque com importação de NF-e por XML, Dashboard com trava por PIN — todas de vidro fosco sobre o degradê, com a caveira 3D, a placa de trilha nos botões, e um botão de voltar fixo em toda tela.
 
 ### O que ainda falta portar
-- Leitura de placa por câmera/OCR (a de formulário está no lugar por enquanto)
-- Fila offline de fotos (IndexedDB)
+- Fila offline de fotos (IndexedDB) — se o sinal cair no meio do cadastro, a foto se perde nesta versão
 - Geração de OS em PDF e envio de orçamento por WhatsApp
-- Importação de peças por XML de NF-e
 - Página pública de aprovação de orçamento (o cliente aprova pelo link)
+- Tela de login (veja o aviso sobre RLS aberta no `schema.sql`)
 
-Essas partes dependem de testar em aparelho de verdade (câmera, sinal de rede variável) — não dá pra validar isso só com build e servidor local.
+Essas partes dependem de testar em aparelho de verdade (câmera, sinal de rede variável) ou de decisões de produto (ex.: como o cliente recebe o link de orçamento) — não dá pra validar isso só com build e servidor local.
 
 ## Getting Started
 

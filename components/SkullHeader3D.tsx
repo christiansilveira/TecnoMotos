@@ -19,7 +19,7 @@ function Caveira() {
     grupo.current.rotation.y += delta * (0.4 + boost * 3.2);
   });
 
-  return <primitive ref={grupo} object={scene} scale={1.7} position={[0, -0.35, 0]} />;
+  return <primitive ref={grupo} object={scene} scale={1.95} position={[0, -0.35, 0]} />;
 }
 
 /**
@@ -38,8 +38,8 @@ function Caveira() {
  */
 export default function SkullHeader3D() {
   return (
-    <div className="mx-auto h-40 w-40 sm:h-48 sm:w-48">
-      <Canvas camera={{ position: [0, 0, 4.2], fov: 35 }} dpr={[1, 2]}>
+    <div className="mx-auto h-56 w-56 sm:h-72 sm:w-72">
+      <Canvas camera={{ position: [0, 0, 4.6], fov: 35 }} dpr={[1, 2]}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[3, 4, 5]} intensity={1.4} color="#fff4e0" />
         <directionalLight position={[-4, -2, -3]} intensity={0.5} color="#4060ff" />

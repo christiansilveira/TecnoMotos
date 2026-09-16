@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
+import TrailPlateButton from "@/components/TrailPlateButton";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO, ITENS_DEMO } from "@/lib/dados-demo";
 import { brl, COLUNAS_KANBAN, STATUS_LABEL, type ItemOS, type OrdemServico, type StatusOS } from "@/lib/tipos";
@@ -16,10 +17,15 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const [itens, setItens] = useState<ItemOS[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [statusSelecionado, setStatusSelecionado] = useState<StatusOS | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [salvo, setSalvo] = useState(false);
 
   const carregar = useCallback(async () => {
     if (DEMO || !supabase) {
-      setOs(ORDENS_DEMO.find((o) => o.id === id) ?? null);
+      const encontrada = ORDENS_DEMO.find((o) => o.id === id) ?? null;
+      setOs(encontrada);
+      setStatusSelecionado(encontrada?.status ?? null);
       setItens(ITENS_DEMO.filter((i) => i.os_id === id));
       setCarregando(false);
       return;
@@ -29,7 +35,9 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
       .select("*, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)")
       .eq("id", id)
       .single();
-    setOs((data as unknown as OrdemServico) ?? null);
+    const encontrada = (data as unknown as OrdemServico) ?? null;
+    setOs(encontrada);
+    setStatusSelecionado(encontrada?.status ?? null);
     const { data: i } = await supabase.from("os_itens").select("*").eq("os_id", id).order("criado_em");
     setItens((i as unknown as ItemOS[]) ?? []);
     setCarregando(false);
@@ -39,14 +47,27 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
     carregar();
   }, [carregar]);
 
-  const mudarStatus = async (status: StatusOS) => {
+  const salvarStatus = async () => {
+    if (!statusSelecionado) return;
+    setSalvando(true);
+    setErro("");
     if (DEMO || !supabase) {
-      setOs((atual) => (atual ? { ...atual, status } : atual));
+      await new Promise((r) => setTimeout(r, 350));
+      setOs((atual) => (atual ? { ...atual, status: statusSelecionado } : atual));
+      setSalvando(false);
+      setSalvo(true);
+      setTimeout(() => setSalvo(false), 2000);
       return;
     }
-    const { error } = await supabase.from("ordens_servico").update({ status }).eq("id", id);
-    if (error) setErro(error.message);
-    else carregar();
+    const { error } = await supabase.from("ordens_servico").update({ status: statusSelecionado }).eq("id", id);
+    setSalvando(false);
+    if (error) {
+      setErro(error.message);
+      return;
+    }
+    setSalvo(true);
+    setTimeout(() => setSalvo(false), 2000);
+    carregar();
   };
 
   if (carregando) {
@@ -70,6 +91,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   }
 
   const total = itens.reduce((soma, i) => soma + i.quantidade * i.valor_unit, 0) || os.valor_total;
+  const statusMudou = statusSelecionado !== null && statusSelecionado !== os.status;
 
   return (
     <div className="flex flex-col gap-6 pt-4">
@@ -125,9 +147,9 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
           {TODOS_STATUS.map((s) => (
             <button
               key={s}
-              onClick={() => mudarStatus(s)}
+              onClick={() => setStatusSelecionado(s)}
               className={`rounded-lg border px-3 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-                os.status === s
+                statusSelecionado === s
                   ? "border-zinc-200 bg-zinc-200 text-zinc-900"
                   : "border-white/10 bg-white/5 text-zinc-400 hover:text-zinc-200"
               }`}
@@ -136,8 +158,18 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
             </button>
           ))}
         </div>
+
+        {statusMudou && (
+          <div className="mt-4">
+            <TrailPlateButton onClick={salvarStatus} disabled={salvando} className="w-full">
+              {salvando ? "Salvando…" : `Salvar → ${STATUS_LABEL[statusSelecionado as StatusOS]}`}
+            </TrailPlateButton>
+          </div>
+        )}
+        {salvo && <p className="mt-3 text-sm text-emerald-400">Situação salva.</p>}
         {erro && <p className="mt-3 text-sm text-red-400">{erro}</p>}
       </PainelVidro>
     </div>
   );
 }
+
