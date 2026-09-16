@@ -1,0 +1,11 @@
+Model Information:
+* title:	Caveira Pirata - Pirate Skull
+* source:	https://sketchfab.com/3d-models/caveira-pirata-pirate-skull-6e1cd5e9352a457896f8c9b8ccea9d28
+* author:	3 EIXOS (https://sketchfab.com/3Eixos.xyz)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Caveira Pirata - Pirate Skull" (https://sketchfab.com/3d-models/caveira-pirata-pirate-skull-6e1cd5e9352a457896f8c9b8ccea9d28) by 3 EIXOS (https://sketchfab.com/3Eixos.xyz) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

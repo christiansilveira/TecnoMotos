@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-archivo-black);
+}
+
+/* ── Fundo de garagem: degradê escuro, não uma cor chapada ──────────── */
+body {
+  background: linear-gradient(160deg, #09090b 0%, #18181b 55%, #0f0f11 100%);
+  background-attachment: fixed;
+  color: var(--foreground);
+}
+
+/* ── Vidro fosco: painéis, sidebars, tabelas ─────────────────────────
+   backdrop-filter de verdade + borda metálica sutil, não uma sombra
+   cinza genérica de card de SaaS. */
+.vidro-garagem {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(161, 161, 170, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 40px -28px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Placa de moto de trilha (TrailPlateButton) ───────────────────────
+   Moldura de alumínio escovado com relevo físico ao clicar e barro
+   discreto nos cantos. */
+.trail-plate {
+  background: linear-gradient(155deg, #f4f4f5 0%, #d4d4d8 35%, #a1a1aa 55%, #e4e4e7 75%, #fafafa 100%);
+  border: 2px solid #71717a;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.25),
+    0 6px 14px -6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.trail-plate:hover {
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.25),
+    0 6px 14px -6px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(212, 212, 216, 0.5),
+    0 0 18px 2px rgba(255, 255, 255, 0.35);
+}
+.trail-plate:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.35),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.4);
+}
+.trail-plate:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.trail-plate-shine {
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.55) 48%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform 0.5s ease;
+}
+.trail-plate:hover .trail-plate-shine {
+  transform: translateX(120%);
+}
+
+.trail-plate-grunge {
+  width: 26px;
+  height: 26px;
+  background: radial-gradient(circle, rgba(76, 57, 41, 0.35), transparent 70%);
+  filter: blur(1px);
+  border-radius: 50%;
+}
+.trail-plate-grunge-a {
+  bottom: -6px;
+  left: -4px;
+}
+.trail-plate-grunge-b {
+  top: -8px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-plate {
+    transition: none;
+  }
+}
+
