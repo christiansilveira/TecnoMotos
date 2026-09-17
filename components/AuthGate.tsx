@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import PainelVidro from "./ui/PainelVidro";
 import Campo from "./ui/Campo";
 import TrailPlateButton from "./TrailPlateButton";
 import { DEMO, supabase } from "@/lib/supabase";
+import { useBikerStore } from "@/store/useBikerStore";
 
 /**
  * Portão de login de verdade pra equipe da oficina — diferente da trava
@@ -81,6 +81,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     await supabase?.auth.signOut();
   };
 
+  const setTelaLogin = useBikerStore((s) => s.setTelaLogin);
+  const mostrarLogin = pronto && !DEMO && !!supabase && !sessao;
+
+  // Avisa o AppHeader pra dar mais presença à logo enquanto essa tela
+  // estiver na frente — some de novo assim que sair dela (login feito,
+  // ou o próprio AuthGate desmontar).
+  useEffect(() => {
+    setTelaLogin(mostrarLogin);
+    return () => setTelaLogin(false);
+  }, [mostrarLogin, setTelaLogin]);
+
   if (!pronto) return null;
   if (DEMO || !supabase) return <>{children}</>;
 
@@ -100,28 +111,74 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-6 pt-6">
-      <div className="text-center">
+    <div className="relative mx-auto flex w-full max-w-sm flex-col gap-4 pt-1">
+      {/* Holofote atrás do cartão — o mesmo truque de luz da caveira 3D no
+          header, pra essa tela não parecer um formulário largado sobre o
+          degradê vazio. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-64 w-64 -translate-x-1/2 rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(255,199,0,.14) 0%, rgba(255,199,0,.04) 45%, transparent 72%)",
+          filter: "blur(8px)",
+        }}
+      />
+
+      <div className="flex items-center justify-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-300">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M7 10.5V8a5 5 0 0 1 10 0v2.5M6 10.5h12a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="15" r="1.4" fill="currentColor" />
+          </svg>
+        </span>
         <p className="text-xs uppercase tracking-[.2em] text-zinc-500">Área restrita da equipe</p>
-        <h1 className="mt-1 font-display text-xl uppercase text-zinc-50">
-          {modo === "entrar" ? "Entrar" : "Criar conta"}
-        </h1>
       </div>
 
-      <PainelVidro className="flex flex-col gap-4 p-5">
-        {modo === "criar" && <Campo label="Nome" value={nome} onChange={setNome} placeholder="Seu nome" />}
-        <Campo label="E-mail" value={email} onChange={setEmail} placeholder="voce@oficina.com" type="email" />
-        <Campo label="Senha" value={senha} onChange={setSenha} placeholder="••••••••" type="password" />
-        {modo === "criar" && (
-          <Campo
-            label="Código da oficina"
-            value={codigo}
-            onChange={setCodigo}
-            placeholder="Combinado com a equipe"
-          />
+      <div className="vidro-login flex flex-col gap-4 rounded-xl p-5">
+        <div className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/30 p-1">
+          {(["entrar", "criar"] as const).map((opcao) => (
+            <button
+              key={opcao}
+              type="button"
+              onClick={() => {
+                setModo(opcao);
+                setErro("");
+              }}
+              className={`rounded-md py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+                modo === opcao ? "bg-amber-400/15 text-amber-300" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {opcao === "entrar" ? "Entrar" : "Criar conta"}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {modo === "criar" && <Campo label="Nome" value={nome} onChange={setNome} placeholder="Seu nome" />}
+          <Campo label="E-mail" value={email} onChange={setEmail} placeholder="voce@oficina.com" type="email" />
+          <Campo label="Senha" value={senha} onChange={setSenha} placeholder="••••••••" type="password" />
+          {modo === "criar" && (
+            <Campo
+              label="Código da oficina"
+              value={codigo}
+              onChange={setCodigo}
+              placeholder="Combinado com a equipe"
+            />
+          )}
+        </div>
+
+        {erro && (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {erro}
+          </div>
         )}
-        {erro && <p className="text-sm text-red-400">{erro}</p>}
-      </PainelVidro>
+      </div>
 
       <TrailPlateButton
         onClick={modo === "entrar" ? entrar : criarConta}
@@ -130,16 +187,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       >
         {enviando ? "Um instante…" : modo === "entrar" ? "Entrar" : "Criar conta"}
       </TrailPlateButton>
-
-      <button
-        onClick={() => {
-          setModo(modo === "entrar" ? "criar" : "entrar");
-          setErro("");
-        }}
-        className="text-center text-xs uppercase tracking-wide text-zinc-500 hover:text-zinc-300"
-      >
-        {modo === "entrar" ? "Ainda não tenho conta" : "Já tenho conta"}
-      </button>
     </div>
   );
 }

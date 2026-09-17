@@ -7,6 +7,9 @@ interface BikerState {
   dustIntensity: number;
   /** Dispara um pulso de boost. Chame isso a partir de qualquer interação (ex.: clique numa TrailPlateButton). */
   triggerBoost: () => void;
+  /** true quando o AuthGate está mostrando a tela de entrar/criar conta — deixa o AppHeader saber que pode aumentar a logo e dar mais presença à marca antes de entrar no sistema. */
+  telaLogin: boolean;
+  setTelaLogin: (v: boolean) => void;
 }
 
 const BOOST_MINIMO = 0.02;
@@ -23,6 +26,8 @@ const POEIRA_REPOUSO = 0.18;
 export const useBikerStore = create<BikerState>((set, get) => ({
   boost: 0,
   dustIntensity: POEIRA_REPOUSO,
+  telaLogin: false,
+  setTelaLogin: (v) => set({ telaLogin: v }),
 
   triggerBoost: () => {
     set({ boost: 1, dustIntensity: 1 });

@@ -38,9 +38,17 @@ function Caveira() {
  * deve continuar visível no app — é exigência da licença.
  */
 export default function SkullHeader3D() {
+  // Na tela de login a logo já cresce pra dar presença de marca — a
+  // caveira encolhe pra virar um selo ao lado dela em vez de competir
+  // por espaço vertical (era o que empurrava o botão de entrar pra
+  // fora da tela em celulares menores).
+  const telaLogin = useBikerStore((s) => s.telaLogin);
+
   return (
     <motion.div
-      className="relative mx-auto h-56 w-56 sm:h-72 sm:w-72"
+      className={`relative mx-auto transition-[width,height] duration-500 ${
+        telaLogin ? "h-28 w-28" : "h-56 w-56 sm:h-72 sm:w-72"
+      }`}
       initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
       animate={{ opacity: 1, scale: 1, rotate: 0 }}
       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
