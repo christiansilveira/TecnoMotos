@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
+import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
 import CameraCaptura from "@/components/CameraCaptura";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -184,29 +185,5 @@ export default function EntradaPage() {
         {salvando ? "Abrindo OS…" : "Abrir OS"}
       </TrailPlateButton>
     </div>
-  );
-}
-
-function Campo({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-zinc-400"
-      />
-    </label>
   );
 }

@@ -3,6 +3,7 @@
 import { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, PresentationControls, useGLTF } from "@react-three/drei";
+import { motion } from "motion/react";
 import type { Group } from "three";
 import { useBikerStore } from "@/store/useBikerStore";
 
@@ -38,7 +39,23 @@ function Caveira() {
  */
 export default function SkullHeader3D() {
   return (
-    <div className="mx-auto h-56 w-56 sm:h-72 sm:w-72">
+    <motion.div
+      className="relative mx-auto h-56 w-56 sm:h-72 sm:w-72"
+      initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
+      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+    >
+      {/* Holofote atrás do troféu — dá palco pra caveira em vez de deixá-la
+          flutuando sozinha no vazio do degradê. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(255,199,0,0.16) 0%, rgba(255,199,0,0.07) 35%, transparent 70%)",
+          filter: "blur(2px)",
+        }}
+      />
       <Canvas camera={{ position: [0, 0, 4.6], fov: 35 }} dpr={[1, 2]}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[3, 4, 5]} intensity={1.4} color="#fff4e0" />
@@ -50,7 +67,7 @@ export default function SkullHeader3D() {
           <Environment preset="city" />
         </Suspense>
       </Canvas>
-    </div>
+    </motion.div>
   );
 }
 

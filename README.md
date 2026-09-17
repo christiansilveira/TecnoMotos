@@ -22,6 +22,20 @@ Sem isso, o app roda em **modo demonstração** (`lib/supabase.ts` detecta a aus
 
 Tabelas esperadas no Supabase: `ordens_servico`, `veiculos`, `clientes`, `os_itens`, `vw_estoque` (view de produtos com saldo calculado) — os mesmos nomes e campos do app original.
 
+### Configurar o login da equipe
+O app agora exige login (Supabase Auth) — só quem tem conta acessa. Não existe cadastro público de verdade: a tela de "criar conta" só cria a conta se a pessoa souber o código combinado com a equipe.
+
+1. Em **Project Settings → API Keys** no Supabase, copie a **chave secreta** (`sb_secret_...`, antigo "service_role") — nunca a publishable/anon.
+2. Adicione ao `.env.local` (e nas variáveis de ambiente da Vercel, como **Secret**, nunca com `NEXT_PUBLIC_`):
+   ```
+   SUPABASE_SECRET_KEY=sua-chave-secreta-aqui
+   CODIGO_CADASTRO_OFICINA=escolha-um-código-e-combine-com-a-equipe
+   ```
+3. Rode (de novo, se já rodou antes) o `supabase/schema.sql` — ele também aperta a política de acesso das tabelas pra exigir login.
+4. Abra o app, use "Ainda não tenho conta", digite o código e crie a primeira conta (a sua). Depois disso, é só passar o mesmo código pra quem mais precisar ter acesso.
+
+O PIN do Dashboard (`components/ui/TrancaDashboard.tsx`) continua existindo do jeito que estava — é uma trava extra só sobre os números financeiros, separada do login geral, pensada pra ficar só com o dono.
+
 ### O que já está pronto
 Home, Entrada de veículo com foto de placa lida pela Gemini, Cadastro rápido de peça com foto de etiqueta lida pela Gemini, Ordens de Serviço (quadro com tempo real do Supabase), detalhe da OS com troca de situação (com botão de salvar), Estoque com importação de NF-e por XML, Dashboard com trava por PIN — todas de vidro fosco sobre o degradê, com a caveira 3D, a placa de trilha nos botões, e um botão de voltar fixo em toda tela.
 

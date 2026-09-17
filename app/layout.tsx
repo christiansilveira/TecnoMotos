@@ -7,6 +7,8 @@ import SkullHeader3D from "@/components/SkullHeader3D";
 import { CreditoModelo3D } from "@/components/CreditoModelo3D";
 import NavVoltar from "@/components/NavVoltar";
 import FaixaDemo from "@/components/FaixaDemo";
+import PageTransition from "@/components/PageTransition";
+import AuthGate from "@/components/AuthGate";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -50,7 +52,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </h1>
         </header>
 
-        <main className="relative mx-auto max-w-5xl px-4 pb-16">{children}</main>
+        <main className="relative mx-auto max-w-5xl px-4 pb-16">
+          <AuthGate>
+            <PageTransition>{children}</PageTransition>
+          </AuthGate>
+        </main>
 
         <footer className="relative pb-6">
           <CreditoModelo3D />

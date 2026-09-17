@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
+import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
 import { brl, COLUNAS_KANBAN, STATUS_LABEL, urgencia, type OrdemServico, type StatusOS } from "@/lib/tipos";
@@ -11,9 +13,23 @@ import { brl, COLUNAS_KANBAN, STATUS_LABEL, urgencia, type OrdemServico, type St
 const SELECAO =
   "id, numero, status, valor_total, aberta_em, finalizada_em, entregue_em, valor_pecas, valor_servicos, valor_desconto, relato_cliente, diagnostico, km_entrada, veiculo_id, cliente_id, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
 
+const STATUS_VALIDOS = new Set<string>(COLUNAS_KANBAN);
+
 export default function OrdensPage() {
+  return (
+    <Suspense fallback={<EsqueletoLista />}>
+      <OrdensPageConteudo />
+    </Suspense>
+  );
+}
+
+function OrdensPageConteudo() {
+  const searchParams = useSearchParams();
+  const statusUrl = searchParams.get("status");
   const [ordens, setOrdens] = useState<OrdemServico[] | null>(null);
-  const [filtro, setFiltro] = useState<StatusOS | "todas">("todas");
+  const [filtro, setFiltro] = useState<StatusOS | "todas">(
+    statusUrl && STATUS_VALIDOS.has(statusUrl) ? (statusUrl as StatusOS) : "todas"
+  );
 
   const carregar = useCallback(async () => {
     if (DEMO || !supabase) {
@@ -72,30 +88,32 @@ export default function OrdensPage() {
       ) : visiveis.length === 0 ? (
         <PainelVidro className="p-8 text-center text-sm text-zinc-400">Nenhuma OS neste filtro.</PainelVidro>
       ) : (
-        <div className="grid gap-3">
+        <RevealGroup className="grid gap-3">
           {visiveis.map((os) => (
-            <Link key={os.id} href={`/ordens/${os.id}`}>
-              <PainelVidro className="p-4 transition-transform hover:-translate-y-0.5 active:scale-[.99]">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-mono text-sm font-bold text-zinc-100">
-                    OS {String(os.numero).padStart(4, "0")}
-                  </span>
-                  <IndicadorUrgencia nivel={urgencia(os)} />
-                </div>
-                <p className="mt-2 text-sm font-medium text-zinc-100">
-                  {os.clientes?.nome ?? "Sem cliente"} · {os.veiculos?.placa}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {[os.veiculos?.marca, os.veiculos?.modelo].filter(Boolean).join(" ") || "—"}
-                </p>
-                <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
-                  <BadgeStatus status={os.status} />
-                  <span className="font-mono text-sm font-bold text-zinc-100">{brl(os.valor_total)}</span>
-                </div>
-              </PainelVidro>
-            </Link>
+            <RevealItem key={os.id}>
+              <Link href={`/ordens/${os.id}`}>
+                <PainelVidro className="p-4 transition-transform hover:-translate-y-0.5 active:scale-[.99]">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-mono text-sm font-bold text-zinc-100">
+                      OS {String(os.numero).padStart(4, "0")}
+                    </span>
+                    <IndicadorUrgencia nivel={urgencia(os)} />
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-zinc-100">
+                    {os.clientes?.nome ?? "Sem cliente"} · {os.veiculos?.placa}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {[os.veiculos?.marca, os.veiculos?.modelo].filter(Boolean).join(" ") || "—"}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+                    <BadgeStatus status={os.status} />
+                    <span className="font-mono text-sm font-bold text-zinc-100">{brl(os.valor_total)}</span>
+                  </div>
+                </PainelVidro>
+              </Link>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       )}
     </div>
   );

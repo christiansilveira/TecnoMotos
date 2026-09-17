@@ -58,6 +58,7 @@ create table if not exists produtos (
   id uuid primary key default gen_random_uuid(),
   nome text not null,
   sku text,
+  codigo_barras text,
   preco_venda numeric not null default 0,
   preco_custo numeric not null default 0,
   estoque_min numeric not null default 0,
@@ -65,6 +66,10 @@ create table if not exists produtos (
   ativo boolean not null default true,
   criado_em timestamptz not null default now()
 );
+
+-- Usado pela Entrada por Nota (XML) para achar peça já cadastrada pelo
+-- código de barras/EAN antes de criar duplicata.
+create index if not exists idx_produtos_codigo_barras on produtos (codigo_barras) where codigo_barras is not null;
 
 create table if not exists estoque_movimentos (
   id uuid primary key default gen_random_uuid(),
@@ -96,14 +101,13 @@ left join (
 ) m on m.produto_id = p.id;
 
 -- ── Row Level Security ──────────────────────────────────────────────
--- IMPORTANTE: o app novo (Next.js) ainda não tem tela de login — só a
--- versão antiga em HTML tinha. Por isso essa política libera qualquer
--- acesso com a anon key (using (true)), não só usuários autenticados.
--- Funciona pra colocar no ar agora, mas quer dizer que qualquer pessoa
--- com a URL do site consegue ler e alterar os dados. Antes de divulgar
--- o link pra clientes ou deixar de ser só uso interno da equipe, é
--- necessário portar a tela de login e trocar `using (true)` por
--- `using (auth.role() = 'authenticated')` nas seis políticas abaixo.
+-- Agora que o app tem tela de login (AuthGate + Supabase Auth, com
+-- criação de conta travada pelo código da oficina em
+-- app/api/criar-conta), só quem está autenticado consegue ler ou
+-- gravar. Se em algum momento este script já tiver rodado antes com a
+-- política antiga "Acesso liberado (sem login ainda)", o `drop policy`
+-- abaixo remove ela antes de criar a nova — rodar este arquivo de novo
+-- é seguro.
 alter table clientes enable row level security;
 alter table veiculos enable row level security;
 alter table ordens_servico enable row level security;
@@ -111,12 +115,26 @@ alter table os_itens enable row level security;
 alter table produtos enable row level security;
 alter table estoque_movimentos enable row level security;
 
-create policy "Acesso liberado (sem login ainda)" on clientes for all using (true) with check (true);
-create policy "Acesso liberado (sem login ainda)" on veiculos for all using (true) with check (true);
-create policy "Acesso liberado (sem login ainda)" on ordens_servico for all using (true) with check (true);
-create policy "Acesso liberado (sem login ainda)" on os_itens for all using (true) with check (true);
-create policy "Acesso liberado (sem login ainda)" on produtos for all using (true) with check (true);
-create policy "Acesso liberado (sem login ainda)" on estoque_movimentos for all using (true) with check (true);
+drop policy if exists "Acesso liberado (sem login ainda)" on clientes;
+drop policy if exists "Acesso liberado (sem login ainda)" on veiculos;
+drop policy if exists "Acesso liberado (sem login ainda)" on ordens_servico;
+drop policy if exists "Acesso liberado (sem login ainda)" on os_itens;
+drop policy if exists "Acesso liberado (sem login ainda)" on produtos;
+drop policy if exists "Acesso liberado (sem login ainda)" on estoque_movimentos;
+
+drop policy if exists "Só quem está logado" on clientes;
+drop policy if exists "Só quem está logado" on veiculos;
+drop policy if exists "Só quem está logado" on ordens_servico;
+drop policy if exists "Só quem está logado" on os_itens;
+drop policy if exists "Só quem está logado" on produtos;
+drop policy if exists "Só quem está logado" on estoque_movimentos;
+
+create policy "Só quem está logado" on clientes for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Só quem está logado" on veiculos for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Só quem está logado" on ordens_servico for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Só quem está logado" on os_itens for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Só quem está logado" on produtos for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Só quem está logado" on estoque_movimentos for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- Realtime: liga a atualização automática do quadro de Ordens de Serviço
 alter publication supabase_realtime add table ordens_servico;

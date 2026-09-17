@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
 import TrailPlateButton from "@/components/TrailPlateButton";
+import CameraCaptura from "@/components/CameraCaptura";
 import { DEMO, supabase } from "@/lib/supabase";
 
 interface ItemNota {
@@ -24,6 +25,22 @@ interface NotaLida {
   itens: ItemNota[];
 }
 
+interface ItemNotaLidaPorFoto {
+  descricao?: string;
+  codigoBarras?: string | null;
+  quantidade?: number;
+  valorUnit?: number;
+}
+
+interface RespostaNotaPorFoto {
+  numero?: string | null;
+  serie?: string | null;
+  fornecedor?: string | null;
+  valorTotal?: number;
+  itens?: ItemNotaLidaPorFoto[];
+  erro?: string;
+}
+
 /**
  * Leitura de nota de entrada por XML de NF-e. Isso é 100% client-side
  * (o navegador já sabe interpretar XML) — diferente da leitura de
@@ -35,6 +52,9 @@ export default function ImportarNotaPage() {
   const [nota, setNota] = useState<NotaLida | null>(null);
   const [erro, setErro] = useState("");
   const [importando, setImportando] = useState(false);
+  const [abrindoCamera, setAbrindoCamera] = useState(false);
+  const [fotosNota, setFotosNota] = useState<Blob[]>([]);
+  const [lendoFoto, setLendoFoto] = useState(false);
 
   const lerArquivo = async (arquivo: File) => {
     setErro("");
@@ -71,6 +91,52 @@ export default function ImportarNotaPage() {
       });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não consegui ler o XML.");
+    }
+  };
+
+  const lerFotosNota = async (fotos: Blob[]) => {
+    setAbrindoCamera(false);
+    if (fotos.length === 0) return;
+    setLendoFoto(true);
+    setErro("");
+    try {
+      const formData = new FormData();
+      fotos.forEach((f, i) => formData.append("imagem", f, `nota-${i}.jpg`));
+      formData.append("modo", "nota");
+      const resposta = await fetch("/api/ler-imagem", { method: "POST", body: formData });
+      const resultado: RespostaNotaPorFoto = await resposta.json();
+      if (!resposta.ok || resultado.erro) {
+        setErro(resultado.erro ?? "Não deu para ler a nota na foto. Tente o XML ou preencha manualmente.");
+        return;
+      }
+      const itens: ItemNota[] = (resultado.itens ?? []).map((item) => {
+        const ean = item.codigoBarras ?? null;
+        return {
+          descricaoNf: item.descricao || "Item sem descrição",
+          codigoFornecedor: null,
+          codigoBarras: ean && /^\d{8,14}$/.test(ean) ? ean : null,
+          ncm: null,
+          quantidade: Number(item.quantidade ?? 0) || 1,
+          valorUnit: Number(item.valorUnit ?? 0),
+          importar: true,
+        };
+      });
+      if (itens.length === 0) {
+        setErro("Não consegui identificar itens nessa foto. Tente tirar de novo com mais luz, ou use o XML.");
+        return;
+      }
+      setNota({
+        numero: resultado.numero ?? null,
+        serie: resultado.serie ?? null,
+        fornecedor: resultado.fornecedor ?? null,
+        valorTotal: Number(resultado.valorTotal ?? itens.reduce((s, i) => s + i.quantidade * i.valorUnit, 0)),
+        itens,
+      });
+      setFotosNota([]);
+    } catch {
+      setErro("Não deu para falar com a IA agora. Tente o XML ou preencha manualmente.");
+    } finally {
+      setLendoFoto(false);
     }
   };
 
@@ -132,17 +198,34 @@ export default function ImportarNotaPage() {
     }
   };
 
+  if (abrindoCamera) {
+    return (
+      <CameraCaptura
+        onFoto={(blob) => setFotosNota((atual) => [...atual, blob])}
+        onCancelar={() => {
+          setAbrindoCamera(false);
+          setFotosNota([]);
+        }}
+        onConcluir={() => lerFotosNota(fotosNota)}
+        titulo="Enquadre a nota fiscal"
+        multiplo
+        contagemAtual={fotosNota.length}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 pt-4">
       <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Entrada por Nota (XML)</h1>
+        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Entrada por Nota</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Solte o XML da NF-e do fornecedor. Preço de venda entra com 80% de margem — ajuste depois.
+          Solte o XML da NF-e do fornecedor, ou tire uma foto da nota e deixe a IA ler. Preço de venda entra com 80% de
+          margem — ajuste depois.
         </p>
       </div>
 
       {!nota ? (
-        <PainelVidro className="p-8 text-center">
+        <PainelVidro className="flex flex-col items-center gap-4 p-8 text-center">
           <label className="cursor-pointer">
             <span className="sr-only">Escolher arquivo XML</span>
             <input
@@ -155,7 +238,18 @@ export default function ImportarNotaPage() {
               Escolher arquivo XML
             </span>
           </label>
-          {erro && <p className="mt-4 text-sm text-red-400">{erro}</p>}
+
+          <span className="text-xs uppercase tracking-wide text-zinc-600">ou</span>
+
+          <button
+            onClick={() => setAbrindoCamera(true)}
+            disabled={lendoFoto}
+            className="inline-block rounded-lg border border-dashed border-white/20 px-5 py-3 text-sm font-bold uppercase tracking-wide text-zinc-400 hover:text-zinc-200"
+          >
+            {lendoFoto ? "Lendo a nota…" : "Fotografar a nota fiscal"}
+          </button>
+
+          {erro && <p className="mt-2 text-sm text-red-400">{erro}</p>}
         </PainelVidro>
       ) : (
         <>

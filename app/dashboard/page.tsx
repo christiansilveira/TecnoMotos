@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PainelVidro from "@/components/ui/PainelVidro";
 import TrancaDashboard from "@/components/ui/TrancaDashboard";
+import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
 import { brl, COLUNAS_KANBAN, STATUS_COR, STATUS_LABEL, type OrdemServico } from "@/lib/tipos";
@@ -60,7 +61,7 @@ function ConteudoDashboard() {
   const maiorStatus = Math.max(1, ...porStatus.map((s) => s.quantidade));
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <RevealGroup className="flex flex-col gap-6 pt-4">
       <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Dashboard</h1>
 
       <PainelVidro className="p-5">
@@ -101,12 +102,20 @@ function ConteudoDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <CartaoNumero destaque titulo="Faturado" valor={brl(faturado)} />
-        <CartaoNumero titulo="OS finalizadas" valor={String(concluidas.length)} />
-        <CartaoNumero titulo="OS abertas" valor={String(novas)} />
-        <CartaoNumero titulo="Ticket médio" valor={brl(ticket)} />
+        <RevealItem>
+          <CartaoNumero destaque titulo="Faturado" valor={brl(faturado)} />
+        </RevealItem>
+        <RevealItem>
+          <CartaoNumero titulo="OS finalizadas" valor={String(concluidas.length)} />
+        </RevealItem>
+        <RevealItem>
+          <CartaoNumero titulo="OS abertas" valor={String(novas)} />
+        </RevealItem>
+        <RevealItem>
+          <CartaoNumero titulo="Ticket médio" valor={brl(ticket)} />
+        </RevealItem>
       </div>
-    </div>
+    </RevealGroup>
   );
 }
 

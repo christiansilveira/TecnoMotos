@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
+import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
 import CameraCaptura from "@/components/CameraCaptura";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -12,6 +13,11 @@ interface RespostaPeca {
   sku?: string;
   codigo_barras?: string;
   erro?: string;
+}
+
+interface FotoPeca {
+  blob: Blob;
+  url: string;
 }
 
 /**
@@ -31,25 +37,40 @@ export default function CadastroRapidoPage() {
   const [aviso, setAviso] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [fotos, setFotos] = useState<FotoPeca[]>([]);
 
-  const lerEtiqueta = async (blob: Blob) => {
+  const adicionarFoto = (blob: Blob) => {
+    setFotos((atual) => [...atual, { blob, url: URL.createObjectURL(blob) }]);
+  };
+
+  const removerFoto = (indice: number) => {
+    setFotos((atual) => {
+      const copia = [...atual];
+      const [removida] = copia.splice(indice, 1);
+      if (removida) URL.revokeObjectURL(removida.url);
+      return copia;
+    });
+  };
+
+  const lerFotos = async (lista: FotoPeca[]) => {
     setAbrindoCamera(false);
+    if (lista.length === 0) return;
     setLendo(true);
     setAviso("");
     try {
       const formData = new FormData();
-      formData.append("imagem", blob, "etiqueta.jpg");
+      lista.forEach((f, i) => formData.append("imagem", f.blob, `peca-${i}.jpg`));
       formData.append("modo", "peca");
       const resposta = await fetch("/api/ler-imagem", { method: "POST", body: formData });
       const resultado: RespostaPeca = await resposta.json();
       if (!resposta.ok || resultado.erro) {
-        setAviso(resultado.erro ?? "Não deu para ler a etiqueta. Preencha manualmente.");
+        setAviso(resultado.erro ?? "Não deu para ler as fotos. Preencha manualmente.");
         return;
       }
       if (resultado.nome) setNome(resultado.nome);
       if (resultado.sku || resultado.codigo_barras) setSku(resultado.sku ?? resultado.codigo_barras ?? "");
     } catch {
-      setAviso("Não deu para ler a etiqueta agora. Preencha manualmente.");
+      setAviso("Não deu para ler as fotos agora. Preencha manualmente.");
     } finally {
       setLendo(false);
     }
@@ -94,7 +115,16 @@ export default function CadastroRapidoPage() {
   };
 
   if (abrindoCamera) {
-    return <CameraCaptura onFoto={lerEtiqueta} onCancelar={() => setAbrindoCamera(false)} titulo="Enquadre a etiqueta" />;
+    return (
+      <CameraCaptura
+        onFoto={adicionarFoto}
+        onCancelar={() => setAbrindoCamera(false)}
+        onConcluir={() => lerFotos(fotos)}
+        titulo="Enquadre a peça"
+        multiplo
+        contagemAtual={fotos.length}
+      />
+    );
   }
 
   return (
@@ -105,12 +135,33 @@ export default function CadastroRapidoPage() {
       </div>
 
       <PainelVidro className="flex flex-col gap-4 p-5">
+        {fotos.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {fotos.map((f, i) => (
+              <div key={f.url} className="relative h-16 w-16 overflow-hidden rounded-lg border border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={f.url} alt={`Foto ${i + 1} da peça`} className="h-full w-full object-cover" />
+                <button
+                  onClick={() => removerFoto(i)}
+                  aria-label="Remover foto"
+                  className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] text-zinc-200"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <button
           onClick={() => setAbrindoCamera(true)}
           disabled={lendo}
           className="flex h-14 items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 text-sm text-zinc-400 hover:text-zinc-200"
         >
-          {lendo ? "Lendo etiqueta…" : "Ler etiqueta com a câmera"}
+          {lendo
+            ? "Lendo fotos…"
+            : fotos.length > 0
+              ? `Tirar mais fotos (${fotos.length} até agora)`
+              : "Fotografar a peça — pode tirar de vários ângulos"}
         </button>
         {aviso && <p className="text-xs text-amber-300">{aviso}</p>}
 
@@ -130,29 +181,5 @@ export default function CadastroRapidoPage() {
         {salvando ? "Salvando…" : "Salvar peça"}
       </TrailPlateButton>
     </div>
-  );
-}
-
-function Campo({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-zinc-400"
-      />
-    </label>
   );
 }

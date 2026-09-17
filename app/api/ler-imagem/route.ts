@@ -17,7 +17,16 @@ const PROMPTS: Record<string, string> = {
   peca:
     "Esta é a foto de uma peça automotiva ou da etiqueta dela. Extraia o que conseguir. " +
     'Responda somente com JSON, sem markdown: {"nome":"","codigo_barras":null,"sku":null,"fabricante":null,"aplicacao":null}.',
+  nota:
+    "Esta é a foto de uma nota fiscal (NF-e/NFC-e) de compra de peças, pode estar amassada, torta ou com parte cortada — leia o que conseguir. " +
+    "Extraia o cabeçalho e a lista de itens comprados. " +
+    'Responda somente com JSON, sem markdown, neste formato: {"numero":null,"serie":null,"fornecedor":null,"valorTotal":0,' +
+    '"itens":[{"descricao":"","codigoBarras":null,"quantidade":1,"valorUnit":0}]}. ' +
+    "Quantidade e valorUnit são números (use ponto decimal, nunca vírgula). " +
+    "Se não conseguir ler algum campo, use null (ou lista vazia em itens) em vez de inventar.",
 };
+
+const LIMITE_TOKENS: Record<string, number> = { nota: 2000 };
 
 /**
  * Proxy server-side para a Gemini API. A chave (GEMINI_API_KEY) só
@@ -35,16 +44,30 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData();
-  const imagem = formData.get("imagem");
+  // Aceita uma ou várias fotos no mesmo campo "imagem" — cadastro rápido
+  // de peça manda várias (ângulos diferentes) pra Gemini juntar o máximo
+  // de informação num só pedido; placa continua mandando só uma.
+  const imagens = formData.getAll("imagem").filter((v): v is File => v instanceof File);
   const modo = String(formData.get("modo") ?? "placa");
 
-  if (!(imagem instanceof Blob)) {
+  if (imagens.length === 0) {
     return NextResponse.json({ erro: "Nenhuma imagem enviada." }, { status: 400 });
+  }
+  if (imagens.length > 6) {
+    return NextResponse.json({ erro: "Muitas fotos de uma vez — envie no máximo 6." }, { status: 400 });
   }
 
   const prompt = PROMPTS[modo] ?? PROMPTS.placa;
-  const bytes = Buffer.from(await imagem.arrayBuffer());
-  const base64 = bytes.toString("base64");
+  const partesImagem = await Promise.all(
+    imagens.map(async (imagem) => {
+      const bytes = Buffer.from(await imagem.arrayBuffer());
+      return { inline_data: { mime_type: imagem.type || "image/jpeg", data: bytes.toString("base64") } };
+    })
+  );
+  const promptFinal =
+    imagens.length > 1
+      ? `${prompt} Você recebeu ${imagens.length} fotos do mesmo item em ângulos diferentes — combine o que der pra ler em todas para preencher o JSON com o máximo de informação possível.`
+      : prompt;
 
   let resposta: Response;
   try {
@@ -56,10 +79,10 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: prompt }, { inline_data: { mime_type: imagem.type || "image/jpeg", data: base64 } }],
+              parts: [{ text: promptFinal }, ...partesImagem],
             },
           ],
-          generationConfig: { temperature: 0, maxOutputTokens: 300 },
+          generationConfig: { temperature: 0, maxOutputTokens: LIMITE_TOKENS[modo] ?? 300 },
         }),
       }
     );

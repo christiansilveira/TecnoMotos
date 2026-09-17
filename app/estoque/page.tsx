@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PainelVidro from "@/components/ui/PainelVidro";
+import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { PRODUTOS_DEMO } from "@/lib/dados-demo";
 import { brl, type Produto } from "@/lib/tipos";
@@ -81,9 +82,9 @@ export default function EstoquePage() {
           ))}
         </div>
       ) : (
-        <PainelVidro className="divide-y divide-white/5">
+        <RevealGroup className="vidro-garagem divide-y divide-white/5 rounded-xl">
           {visiveis.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-3 p-4">
+            <RevealItem key={p.id} className="flex items-center justify-between gap-3 p-4">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-zinc-100">{p.nome}</p>
                 <p className="font-mono text-xs text-zinc-500">
@@ -99,10 +100,10 @@ export default function EstoquePage() {
                 </p>
                 <p className="text-[10px] uppercase tracking-wide text-zinc-500">{p.unidade}</p>
               </div>
-            </div>
+            </RevealItem>
           ))}
           {visiveis.length === 0 && <p className="p-6 text-center text-sm text-zinc-500">Nenhuma peça encontrada.</p>}
-        </PainelVidro>
+        </RevealGroup>
       )}
     </div>
   );

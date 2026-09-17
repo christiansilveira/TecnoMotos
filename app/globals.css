@@ -96,3 +96,15 @@ body {
   }
 }
 
+/* ── Campo de instrumento: input com linha de base que acende em âmbar
+   no foco, em vez da borda cinza genérica de formulário de SaaS ──────── */
+.campo-instrumento {
+  border-bottom: 2px solid rgba(255, 199, 0, 0);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.campo-instrumento:focus {
+  border-bottom-color: rgba(255, 199, 0, 0.75);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px -6px rgba(255, 199, 0, 0.35);
+}
+
