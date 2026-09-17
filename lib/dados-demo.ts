@@ -3,9 +3,9 @@ import type { ItemOS, OrdemServico, Produto } from "./tipos";
 const horasAtras = (h: number) => new Date(Date.now() - h * 36e5).toISOString();
 
 const VEICULOS = {
-  v1: { placa: "ABC-1D23", marca: "VW", modelo: "Gol", ano: 2016 },
-  v2: { placa: "RXY-7H89", marca: "Chevrolet", modelo: "Onix", ano: 2020 },
-  v3: { placa: "BDX-4A17", marca: "Honda", modelo: "CG 160 Titan", ano: 2022 },
+  v1: { placa: "ABC-1D23", marca: "VW", modelo: "Gol", ano: 2016, fotos_url: null },
+  v2: { placa: "RXY-7H89", marca: "Chevrolet", modelo: "Onix", ano: 2020, fotos_url: null },
+  v3: { placa: "BDX-4A17", marca: "Honda", modelo: "CG 160 Titan", ano: 2022, fotos_url: null },
 };
 
 const CLIENTES = {

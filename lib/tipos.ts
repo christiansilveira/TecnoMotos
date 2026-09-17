@@ -59,6 +59,9 @@ export interface Veiculo {
   ano: number | null;
   km_atual: number | null;
   documento: string | null;
+  /** URLs públicas das fotos gerais da moto (bucket "veiculos-fotos"),
+   * tiradas na Entrada de Veículo — o "arquivo do cliente" que faltava. */
+  fotos_url: string[] | null;
 }
 
 export interface OrdemServico {
@@ -77,7 +80,7 @@ export interface OrdemServico {
   entregue_em: string | null;
   veiculo_id: string;
   cliente_id: string | null;
-  veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano"> | null;
+  veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano" | "fotos_url"> | null;
   clientes?: Pick<Cliente, "nome" | "telefone"> | null;
 }
 

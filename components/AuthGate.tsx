@@ -101,9 +101,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         <button
           onClick={sair}
           aria-label="Sair da conta"
-          className="vidro-garagem fixed right-4 top-4 z-40 flex h-11 items-center justify-center rounded-full px-4 text-[10px] font-bold uppercase tracking-wide text-zinc-300 transition-transform hover:-translate-y-0.5 active:scale-95"
+          className="trail-plate group fixed right-4 top-4 z-40 flex h-11 items-center justify-center overflow-hidden rounded-full px-4 text-[10px] font-bold uppercase tracking-wide text-zinc-900 transition-transform hover:-translate-y-0.5 active:scale-95"
         >
-          Sair
+          <span className="relative z-10">Sair</span>
+          <span aria-hidden="true" className="trail-plate-shine pointer-events-none absolute inset-0" />
         </button>
         {children}
       </>

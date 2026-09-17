@@ -2,13 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
+import TrailPlateButton from "@/components/TrailPlateButton";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { PRODUTOS_DEMO } from "@/lib/dados-demo";
 import { brl, type Produto } from "@/lib/tipos";
 
+/** Alerta sutil de ponta de estoque: dispara a partir de 2 unidades,
+ * separado da coluna `situacao` (que depende de estoque_min, e nem
+ * toda peça tem um mínimo configurado). Só um ponto pulsando e o
+ * número em âmbar — nada de banner gritando. */
+const LIMITE_ACABANDO = 2;
+
 export default function EstoquePage() {
+  const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[] | null>(null);
   const [busca, setBusca] = useState("");
 
@@ -44,18 +53,12 @@ export default function EstoquePage() {
           <p className="mt-1 text-sm text-zinc-400">{produtos?.length ?? "…"} peças cadastradas</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link
-            href="/estoque/cadastro-rapido"
-            className="vidro-garagem rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-200 hover:text-white"
-          >
+          <TrailPlateButton tamanho="sm" type="button" onClick={() => router.push("/estoque/cadastro-rapido")}>
             Cadastro Rápido
-          </Link>
-          <Link
-            href="/estoque/importar-nota"
-            className="vidro-garagem rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-200 hover:text-white"
-          >
+          </TrailPlateButton>
+          <TrailPlateButton tamanho="sm" type="button" onClick={() => router.push("/estoque/importar-nota")}>
             Entrada por NF
-          </Link>
+          </TrailPlateButton>
         </div>
       </div>
 
@@ -83,25 +86,38 @@ export default function EstoquePage() {
         </div>
       ) : (
         <RevealGroup className="vidro-garagem divide-y divide-white/5 rounded-xl">
-          {visiveis.map((p) => (
-            <RevealItem key={p.id} className="flex items-center justify-between gap-3 p-4">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-zinc-100">{p.nome}</p>
-                <p className="font-mono text-xs text-zinc-500">
-                  {p.sku ?? "s/ código"} · {brl(p.preco_venda)}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p
-                  className="font-mono text-lg font-bold"
-                  style={{ color: p.situacao === "ok" ? "rgb(228 228 231)" : "rgb(248 113 113)" }}
+          {visiveis.map((p) => {
+            const acabando = p.situacao === "ok" && p.saldo > 0 && p.saldo <= LIMITE_ACABANDO;
+            return (
+              <RevealItem key={p.id}>
+                <Link
+                  href={`/estoque/${p.id}`}
+                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-white/[.03]"
                 >
-                  {p.saldo}
-                </p>
-                <p className="text-[10px] uppercase tracking-wide text-zinc-500">{p.unidade}</p>
-              </div>
-            </RevealItem>
-          ))}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-100">{p.nome}</p>
+                    <p className="font-mono text-xs text-zinc-500">
+                      {p.sku ?? "s/ código"} · {brl(p.preco_venda)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p
+                      className="flex items-center justify-end gap-1.5 font-mono text-lg font-bold"
+                      style={{ color: p.situacao === "ok" ? (acabando ? "rgb(255 199 0)" : "rgb(228 228 231)") : "rgb(248 113 113)" }}
+                    >
+                      {acabando && (
+                        <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full" style={{ background: "rgb(255 199 0)" }} />
+                      )}
+                      {p.saldo}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                      {acabando ? "acabando" : p.unidade}
+                    </p>
+                  </div>
+                </Link>
+              </RevealItem>
+            );
+          })}
           {visiveis.length === 0 && <p className="p-6 text-center text-sm text-zinc-500">Nenhuma peça encontrada.</p>}
         </RevealGroup>
       )}

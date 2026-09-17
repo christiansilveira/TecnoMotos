@@ -9,18 +9,21 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-archivo-black);
+  --font-display: var(--font-rajdhani);
   --font-mono: var(--font-jetbrains-mono);
 }
 
-/* ── Fundo de garagem: degradê escuro com profundidade de verdade ────
-   Três camadas em vez de uma: o degradê base (mais fundo, puxado pro
-   preto-azulado da instrumentação, não um cinza neutro de SaaS), uma
-   vinheta radial que escurece os cantos como luz de teto de oficina, e
-   um grão fotográfico bem sutil por cima — é o grão que faz a diferença
-   entre "gradiente de CSS" e "fundo com textura". */
+/* ── Fundo de oficina à noite: um facho de luz de refletor vindo de
+   cima-esquerda (não uma vinheta centrada e simétrica — isso é o que
+   lê como "gradiente de template"), piso quase preto que ganha um
+   pingo de âmbar refletido embaixo, e grão fotográfico por cima. A
+   ideia é parecer uma foto tirada dentro da oficina de noite, não um
+   papel de parede abstrato. */
 body {
-  background: linear-gradient(160deg, #0b0c10 0%, #17191f 45%, #0d0e12 100%);
+  background: radial-gradient(ellipse 70% 55% at 18% -8%, rgba(255, 199, 0, 0.12), transparent 58%),
+    radial-gradient(ellipse 95% 85% at 96% 112%, rgba(255, 153, 0, 0.16), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 60%, rgba(255, 199, 0, 0.06), transparent 65%),
+    linear-gradient(165deg, #0c0d11 0%, #08090b 45%, #050506 100%);
   background-attachment: fixed;
   color: var(--foreground);
 }
@@ -32,8 +35,8 @@ body::before {
   z-index: -9;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255, 199, 0, 0.05), transparent 60%),
-    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+    radial-gradient(ellipse 55% 45% at 15% 0%, rgba(255, 199, 0, 0.07), transparent 55%),
+    radial-gradient(ellipse 140% 100% at 50% 55%, transparent 38%, rgba(0, 0, 0, 0.68) 100%);
 }
 
 body::after {
@@ -42,7 +45,7 @@ body::after {
   inset: 0;
   z-index: -8;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.06;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 160px 160px;
@@ -90,6 +93,22 @@ body::after {
 .trail-plate:disabled {
   opacity: 0.45;
   pointer-events: none;
+}
+
+/* Variante "perigo" — placa tingida de vermelho-ferrugem pra ações
+   destrutivas (excluir peça), pra nunca ter a mesma cara de uma ação
+   normal. */
+.trail-plate-perigo {
+  background: linear-gradient(155deg, #fecaca 0%, #f87171 35%, #b91c1c 55%, #ef4444 75%, #fecaca 100%);
+  border-color: #7f1d1d;
+}
+.trail-plate-perigo.trail-plate:hover {
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+    0 6px 14px -6px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(248, 113, 113, 0.5),
+    0 0 18px 2px rgba(248, 113, 113, 0.35);
 }
 
 .trail-plate-shine {
@@ -158,5 +177,122 @@ body::after {
   height: 2px;
   border-radius: 9999px 9999px 0 0;
   background: linear-gradient(90deg, transparent, rgba(255, 199, 0, 0.55) 50%, transparent);
+}
+
+/* ── Faixa lateral de status: a barra colorida na borda esquerda dos
+   cards (OS, itens de lista) — o indicador de status vira parte da
+   estrutura do card, não só um badge solto no canto. Cor vem de
+   --cor-status (RGB "r g b", mesmo formato de STATUS_COR). ────────── */
+.faixa-status {
+  position: relative;
+  border-left: 3px solid transparent;
+}
+.faixa-status::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -1px;
+  width: 3px;
+  background: rgb(var(--cor-status, 161 161 170));
+  box-shadow: 0 0 10px 0 rgba(var(--cor-status, 161 161 170), 0.6);
+}
+
+/* ── Moldura de placa da marca: usada pela logo no header no lugar do
+   troféu 3D — vidro fosco + friso âmbar, rebites nos quatro cantos
+   pra parecer uma placa aparafusada, não uma imagem solta. ─────────── */
+.placa-marca {
+  position: relative;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 199, 0, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 24px rgba(255, 199, 0, 0.05),
+    0 18px 34px -18px rgba(0, 0, 0, 0.9);
+}
+.placa-marca-rebite {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e4e4e7, #52525b 70%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Pneu da Trilha da Moto: anel de borracha com marca de banda de
+   rodagem (repeating-conic-gradient) em vez de um círculo liso — é o
+   detalhe que faz a trilha parecer pista, não uma lista de bolinhas. */
+.pneu-trilha {
+  background:
+    repeating-conic-gradient(from 0deg, rgba(0, 0, 0, 0.9) 0deg 8deg, rgba(38, 38, 42, 0.9) 8deg 16deg);
+  box-shadow:
+    inset 0 0 0 3px #0a0a0b,
+    inset 0 1px 2px rgba(255, 255, 255, 0.08);
+}
+.pneu-trilha-aro {
+  background: radial-gradient(circle at 35% 30%, #3f3f46, #18181b 75%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Cantos de HUD + anel de instrumento ──────────────────────────────
+   Referência trazida pelo Christian (astrovia-solutions, weevolveit):
+   fundo quase preto + acentos geométricos finos de "painel técnico",
+   não textura literal. Cantos de mira fixos nos 4 vértices da tela e
+   um anel de mostrador (tipo velocímetro) bem apagado no canto —
+   decoração pura, embaixo de tudo, nunca compete com o conteúdo. */
+.hud-canto {
+  position: fixed;
+  z-index: -9;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(255, 199, 0, 0.22);
+  pointer-events: none;
+}
+.hud-canto-tl {
+  top: 14px;
+  left: 14px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+.hud-canto-br {
+  bottom: 14px;
+  right: 14px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+.hud-mostrador {
+  position: fixed;
+  z-index: -9;
+  right: -140px;
+  bottom: -140px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  border: 1px solid rgba(255, 199, 0, 0.08);
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(255, 199, 0, 0.06) 0deg 1deg,
+      transparent 1deg 6deg
+    );
+  -webkit-mask-image: radial-gradient(circle, black 62%, transparent 64%, transparent 100%, black 100%);
+  mask-image: radial-gradient(circle, black 62%, transparent 64%, transparent 100%, black 100%);
+}
+.hud-mostrador::before {
+  content: "";
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 199, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+  .hud-mostrador {
+    width: 260px;
+    height: 260px;
+    right: -100px;
+    bottom: -100px;
+  }
 }
 

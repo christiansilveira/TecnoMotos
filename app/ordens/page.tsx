@@ -8,7 +8,7 @@ import BadgeStatus from "@/components/ui/BadgeStatus";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
-import { brl, COLUNAS_KANBAN, STATUS_LABEL, urgencia, type OrdemServico, type StatusOS } from "@/lib/tipos";
+import { brl, COLUNAS_KANBAN, STATUS_COR, STATUS_LABEL, urgencia, type OrdemServico, type StatusOS } from "@/lib/tipos";
 
 const SELECAO =
   "id, numero, status, valor_total, aberta_em, finalizada_em, entregue_em, valor_pecas, valor_servicos, valor_desconto, relato_cliente, diagnostico, km_entrada, veiculo_id, cliente_id, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
@@ -92,7 +92,10 @@ function OrdensPageConteudo() {
           {visiveis.map((os) => (
             <RevealItem key={os.id}>
               <Link href={`/ordens/${os.id}`}>
-                <PainelVidro className="p-4 transition-transform hover:-translate-y-0.5 active:scale-[.99]">
+                <PainelVidro
+                  corStatus={STATUS_COR[os.status]}
+                  className="p-4 pl-5 transition-transform hover:-translate-y-0.5 active:scale-[.99]"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <span className="font-mono text-sm font-bold text-zinc-100">
                       OS {String(os.numero).padStart(4, "0")}

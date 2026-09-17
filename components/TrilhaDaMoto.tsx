@@ -77,15 +77,21 @@ export default function TrilhaDaMoto() {
             >
               <div className="flex w-full items-center">
                 <span
-                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-bold transition-transform group-hover:scale-110 group-active:scale-95"
-                  style={{
-                    borderColor: acesa ? `rgb(${cor})` : "rgba(255,255,255,.14)",
-                    color: acesa ? `rgb(${cor})` : "rgb(113 113 122)",
-                    background: acesa ? `rgba(${cor}, .14)` : "rgba(255,255,255,.03)",
-                    boxShadow: acesa ? `0 0 10px 1px rgba(${cor}, .45)` : "none",
-                  }}
+                  className="pneu-trilha relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-110 group-active:scale-95"
+                  style={
+                    acesa
+                      ? {
+                          boxShadow: `inset 0 0 0 3px #0a0a0b, inset 0 1px 2px rgba(255,255,255,.08), 0 0 0 2px rgb(${cor}), 0 0 14px 2px rgba(${cor}, .5)`,
+                        }
+                      : undefined
+                  }
                 >
-                  {n}
+                  <span
+                    className="pneu-trilha-aro flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-bold"
+                    style={{ color: acesa ? `rgb(${cor})` : "rgb(161 161 170)" }}
+                  >
+                    {n}
+                  </span>
                 </span>
                 {!ultima && (
                   <span

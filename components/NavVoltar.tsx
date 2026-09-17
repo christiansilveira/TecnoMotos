@@ -16,9 +16,10 @@ export default function NavVoltar() {
     <Link
       href="/"
       aria-label="Voltar para o início"
-      className="vidro-garagem fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full text-lg text-zinc-200 transition-transform hover:-translate-y-0.5 active:scale-95"
+      className="trail-plate group fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-base font-bold text-zinc-900 transition-transform hover:-translate-y-0.5 active:scale-95"
     >
-      ←
+      <span className="relative z-10">←</span>
+      <span aria-hidden="true" className="trail-plate-shine pointer-events-none absolute inset-0" />
     </Link>
   );
 }

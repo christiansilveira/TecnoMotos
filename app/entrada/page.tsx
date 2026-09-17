@@ -31,6 +31,25 @@ export default function EntradaPage() {
   const [lendoPlaca, setLendoPlaca] = useState(false);
   const [avisoLeitura, setAvisoLeitura] = useState("");
 
+  // Fotos gerais da moto (carroceria, riscos, avarias) — separadas da
+  // foto da placa: ficam salvas no arquivo do veículo pra consulta
+  // depois, sem depender de nenhuma leitura automática.
+  const [abrindoCameraVeiculo, setAbrindoCameraVeiculo] = useState(false);
+  const [fotosVeiculo, setFotosVeiculo] = useState<{ blob: Blob; url: string }[]>([]);
+
+  const adicionarFotoVeiculo = (blob: Blob) => {
+    setFotosVeiculo((atual) => [...atual, { blob, url: URL.createObjectURL(blob) }]);
+  };
+
+  const removerFotoVeiculo = (indice: number) => {
+    setFotosVeiculo((atual) => {
+      const copia = [...atual];
+      const [removida] = copia.splice(indice, 1);
+      if (removida) URL.revokeObjectURL(removida.url);
+      return copia;
+    });
+  };
+
   const capturarFoto = async (blob: Blob) => {
     setFotoPlaca(URL.createObjectURL(blob));
     setAbrindoCamera(false);
@@ -87,6 +106,26 @@ export default function EntradaPage() {
         .single();
       if (eVeiculo) throw eVeiculo;
 
+      // Fotos da moto: melhor esforço — se o bucket de storage ainda não
+      // foi criado no Supabase, a OS continua sendo aberta normalmente,
+      // só sem as fotos anexadas ao veículo.
+      if (fotosVeiculo.length > 0) {
+        const urls: string[] = [];
+        for (let i = 0; i < fotosVeiculo.length; i++) {
+          const caminho = `${veiculo.id}/${Date.now()}-${i}.jpg`;
+          const { error: eUpload } = await supabase.storage
+            .from("veiculos-fotos")
+            .upload(caminho, fotosVeiculo[i].blob, { contentType: "image/jpeg" });
+          if (!eUpload) {
+            const { data: pub } = supabase.storage.from("veiculos-fotos").getPublicUrl(caminho);
+            if (pub?.publicUrl) urls.push(pub.publicUrl);
+          }
+        }
+        if (urls.length > 0) {
+          await supabase.from("veiculos").update({ fotos_url: urls }).eq("id", veiculo.id);
+        }
+      }
+
       const { data: os, error: eOs } = await supabase
         .from("ordens_servico")
         .insert({
@@ -112,11 +151,24 @@ export default function EntradaPage() {
     return <CameraCaptura onFoto={capturarFoto} onCancelar={() => setAbrindoCamera(false)} />;
   }
 
+  if (abrindoCameraVeiculo) {
+    return (
+      <CameraCaptura
+        titulo="Fotografe a moto"
+        multiplo
+        contagemAtual={fotosVeiculo.length}
+        onFoto={adicionarFotoVeiculo}
+        onCancelar={() => setAbrindoCameraVeiculo(false)}
+        onConcluir={() => setAbrindoCameraVeiculo(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 pt-4">
       <div>
         <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Entrada de Veículo</h1>
-        <p className="mt-1 text-sm text-zinc-400">Fotografe a placa — a Gemini tenta ler sozinha; confira antes de salvar.</p>
+        <p className="mt-1 text-sm text-zinc-400">Placa, dados do cliente e fotos da moto pro arquivo do veículo.</p>
       </div>
 
       {avisoDemo && (
@@ -158,6 +210,35 @@ export default function EntradaPage() {
             </button>
           )}
           {avisoLeitura && <p className="mt-2 text-xs text-amber-300">{avisoLeitura}</p>}
+        </div>
+
+        <div>
+          <span className="mb-2 block text-[11px] uppercase tracking-wide text-zinc-500">
+            Fotos da moto {fotosVeiculo.length > 0 && `(${fotosVeiculo.length})`}
+          </span>
+          {fotosVeiculo.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {fotosVeiculo.map((f, i) => (
+                <div key={f.url} className="relative h-16 w-16 overflow-hidden rounded-lg border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url} alt={`Foto ${i + 1} da moto`} className="h-full w-full object-cover" />
+                  <button
+                    onClick={() => removerFotoVeiculo(i)}
+                    aria-label="Remover foto"
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] text-zinc-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setAbrindoCameraVeiculo(true)}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            {fotosVeiculo.length > 0 ? "Tirar mais fotos da moto" : "Fotografar a moto — salva no arquivo do cliente"}
+          </button>
         </div>
 
         <Campo label="Placa" value={placa} onChange={setPlaca} placeholder="ABC-1D23" />

@@ -10,6 +10,8 @@ interface BikerState {
   /** true quando o AuthGate está mostrando a tela de entrar/criar conta — deixa o AppHeader saber que pode aumentar a logo e dar mais presença à marca antes de entrar no sistema. */
   telaLogin: boolean;
   setTelaLogin: (v: boolean) => void;
+  /** De que lado da tela a roda 3D de fundo (WheelBackground3D) está agora — ela "corre" pro lado oposto a cada boost, ver triggerBoost. */
+  ladoRoda: "esquerda" | "direita";
 }
 
 const BOOST_MINIMO = 0.02;
@@ -28,9 +30,17 @@ export const useBikerStore = create<BikerState>((set, get) => ({
   dustIntensity: POEIRA_REPOUSO,
   telaLogin: false,
   setTelaLogin: (v) => set({ telaLogin: v }),
+  ladoRoda: "direita",
 
   triggerBoost: () => {
-    set({ boost: 1, dustIntensity: 1 });
+    // A cada clique importante (qualquer TrailPlateButton/Card), a roda 3D
+    // de fundo "corre" pro lado oposto da tela — pedido do Christian pra
+    // reforçar a sensação de movimento junto com o boost visual existente.
+    set((estado) => ({
+      boost: 1,
+      dustIntensity: 1,
+      ladoRoda: estado.ladoRoda === "direita" ? "esquerda" : "direita",
+    }));
 
     const decair = () => {
       const atual = get().boost;
