@@ -77,7 +77,9 @@ export default function TrilhaDaMoto() {
             >
               <div className="flex w-full items-center">
                 <span
-                  className="pneu-trilha relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-110 group-active:scale-95"
+                  className={`pneu-trilha relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-110 group-active:scale-95 ${
+                    acesa ? "pneu-trilha--girando" : ""
+                  }`}
                   style={
                     acesa
                       ? {
@@ -86,6 +88,7 @@ export default function TrilhaDaMoto() {
                       : undefined
                   }
                 >
+                  {acesa && <span aria-hidden="true" className="pneu-luz" style={{ backgroundColor: `rgb(${cor})` }} />}
                   <span
                     className="pneu-trilha-aro flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-bold"
                     style={{ color: acesa ? `rgb(${cor})` : "rgb(161 161 170)" }}

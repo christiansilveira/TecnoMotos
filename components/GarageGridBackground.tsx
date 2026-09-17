@@ -25,12 +25,12 @@ const RAIO_CONEXAO = 140;
  * poeira saindo", que ele achou clichê/amador — parecia clipart de
  * motocross em vez de um sistema de verdade.
  *
- * A cor é o âmbar da marca (não o ciano/rosa dos sites de referência —
- * a identidade de cor da TECNOMOTOS já está definida em STATUS_COR e
- * no botão de destaque, não faz sentido importar outra paleta junto
- * com a ideia). A intensidade de brilho/velocidade segue `dustIntensity`
- * da useBikerStore — o mesmo gancho tátil que os cliques em botões já
- * disparavam antes (era a poeira acelerando; agora é a rede "acordando").
+ * A cor é a cor de destaque da marca (âmbar no tema escuro, azul no
+ * tema claro — lida de `tema` na useBikerStore a cada quadro, então a
+ * rede acompanha a troca de tema sozinha). A intensidade de
+ * brilho/velocidade segue `dustIntensity` da useBikerStore — o mesmo
+ * gancho tátil que os cliques em botões já disparavam antes (era a
+ * poeira acelerando; agora é a rede "acordando").
  */
 export default function GarageGridBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -67,7 +67,12 @@ export default function GarageGridBackground() {
     window.addEventListener("resize", ajustarTamanho);
 
     const desenhar = () => {
-      const intensidade = reduzMovimento ? 0 : useBikerStore.getState().dustIntensity;
+      const estado = useBikerStore.getState();
+      const intensidade = reduzMovimento ? 0 : estado.dustIntensity;
+      // Mesma cor de destaque do resto do app (âmbar no escuro, azul no
+      // claro) — lida da store em vez de cravada, pra rede acompanhar a
+      // troca de tema sem precisar de outro componente/instância.
+      const corRede = estado.tema === "claro" ? "37, 99, 235" : "255, 199, 0";
       ctx.clearRect(0, 0, largura, altura);
 
       if (!reduzMovimento) {
@@ -90,7 +95,7 @@ export default function GarageGridBackground() {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < RAIO_CONEXAO) {
             const opacidade = (1 - dist / RAIO_CONEXAO) * (0.1 + intensidade * 0.16);
-            ctx.strokeStyle = `rgba(255, 199, 0, ${opacidade})`;
+            ctx.strokeStyle = `rgba(${corRede}, ${opacidade})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -102,7 +107,7 @@ export default function GarageGridBackground() {
 
       nos.forEach((n) => {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 199, 0, ${0.32 + intensidade * 0.25})`;
+        ctx.fillStyle = `rgba(${corRede}, ${0.32 + intensidade * 0.25})`;
         ctx.arc(n.x, n.y, 1.3, 0, Math.PI * 2);
         ctx.fill();
       });

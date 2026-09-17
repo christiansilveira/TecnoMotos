@@ -6,7 +6,8 @@ import TrancaDashboard from "@/components/ui/TrancaDashboard";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
-import { brl, COLUNAS_KANBAN, STATUS_COR, STATUS_LABEL, type OrdemServico } from "@/lib/tipos";
+import { brl, COLUNAS_KANBAN, corStatusTexto, STATUS_COR, STATUS_LABEL, type OrdemServico } from "@/lib/tipos";
+import { useBikerStore } from "@/store/useBikerStore";
 
 export default function DashboardPage() {
   return (
@@ -17,6 +18,7 @@ export default function DashboardPage() {
 }
 
 function ConteudoDashboard() {
+  const tema = useBikerStore((s) => s.tema);
   const [ordens, setOrdens] = useState<OrdemServico[] | null>(null);
   const [dias, setDias] = useState(30);
 
@@ -73,7 +75,7 @@ function ConteudoDashboard() {
           {porStatus.map(({ status, quantidade }) => (
             <div key={status}>
               <div className="mb-1 flex justify-between text-xs uppercase tracking-wide">
-                <span style={{ color: `rgb(${STATUS_COR[status]})` }}>{STATUS_LABEL[status]}</span>
+                <span style={{ color: `rgb(${corStatusTexto(STATUS_COR[status], tema)})` }}>{STATUS_LABEL[status]}</span>
                 <span className="font-mono text-zinc-300">{quantidade}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/10">

@@ -40,7 +40,8 @@ export default function AppHeader() {
         transition={{ type: "spring", stiffness: 200, damping: 28 }}
         className="pointer-events-none absolute left-1/2 top-2 -z-10 -translate-x-1/2 rounded-full"
         style={{
-          background: "radial-gradient(circle, rgba(255,199,0,.20) 0%, rgba(255,199,0,.07) 42%, transparent 72%)",
+          background:
+            "radial-gradient(circle, rgb(var(--cor-acento-rgb) / .20) 0%, rgb(var(--cor-acento-rgb) / .07) 42%, transparent 72%)",
           filter: "blur(6px)",
         }}
       />

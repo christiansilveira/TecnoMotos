@@ -39,6 +39,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const [itens, setItens] = useState<ItemOS[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [erroCarregar, setErroCarregar] = useState("");
   const [statusSelecionado, setStatusSelecionado] = useState<StatusOS | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
@@ -62,15 +63,27 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
       setCarregando(false);
       return;
     }
-    const { data } = await supabase
+    setErroCarregar("");
+    const { data, error: erroOS } = await supabase
       .from("ordens_servico")
       .select("*, veiculos(placa, marca, modelo, ano, fotos_url), clientes(nome, telefone)")
       .eq("id", id)
       .single();
+    if (erroOS) {
+      // Distingue "OS não existe" de "erro de verdade" (ex.: coluna que
+      // ainda não existe porque um script SQL pendente não rodou) — sem
+      // isso, qualquer erro de banco aparecia como "não encontrada",
+      // o que é enganoso e difícil de diagnosticar.
+      setErroCarregar(erroOS.message);
+      setOs(null);
+      setCarregando(false);
+      return;
+    }
     const encontrada = (data as unknown as OrdemServico) ?? null;
     setOs(encontrada);
     setStatusSelecionado(encontrada?.status ?? null);
-    const { data: i } = await supabase.from("os_itens").select("*").eq("os_id", id).order("criado_em");
+    const { data: i, error: erroItens } = await supabase.from("os_itens").select("*").eq("os_id", id).order("criado_em");
+    if (erroItens) setErroCarregar(erroItens.message);
     setItens((i as unknown as ItemOS[]) ?? []);
     setCarregando(false);
   }, [id]);
@@ -228,7 +241,20 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   if (!os) {
     return (
       <PainelVidro className="mt-4 p-8 text-center">
-        <p className="text-sm text-zinc-400">Ordem de serviço não encontrada.</p>
+        {erroCarregar ? (
+          <>
+            <p className="text-sm font-bold uppercase tracking-wide text-red-400">Erro ao carregar a OS</p>
+            <p className="mx-auto mt-2 max-w-md rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              {erroCarregar}
+            </p>
+            <p className="mt-3 text-xs text-zinc-500">
+              Se a mensagem mencionar uma coluna que não existe (ex.: <code>fotos_url</code>), falta rodar o script{" "}
+              <code>supabase/2026-09-17-fotos-da-moto.sql</code> no SQL Editor do Supabase.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-zinc-400">Ordem de serviço não encontrada.</p>
+        )}
         <Link href="/ordens" className="mt-3 inline-block text-sm text-zinc-200 underline">
           Voltar para o quadro
         </Link>

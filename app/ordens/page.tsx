@@ -8,7 +8,8 @@ import BadgeStatus from "@/components/ui/BadgeStatus";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO } from "@/lib/dados-demo";
-import { brl, COLUNAS_KANBAN, STATUS_COR, STATUS_LABEL, urgencia, type OrdemServico, type StatusOS } from "@/lib/tipos";
+import { brl, COLUNAS_KANBAN, corStatusTexto, STATUS_COR, STATUS_LABEL, urgencia, type OrdemServico, type StatusOS } from "@/lib/tipos";
+import { useBikerStore } from "@/store/useBikerStore";
 
 const SELECAO =
   "id, numero, status, valor_total, aberta_em, finalizada_em, entregue_em, valor_pecas, valor_servicos, valor_desconto, relato_cliente, diagnostico, km_entrada, veiculo_id, cliente_id, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
@@ -138,12 +139,14 @@ function BotaoFiltro({ ativo, onClick, children }: { ativo: boolean; onClick: ()
 }
 
 function IndicadorUrgencia({ nivel }: { nivel: 0 | 1 | 2 | 3 }) {
+  const tema = useBikerStore((s) => s.tema);
   if (!nivel) return null;
   const cor = nivel === 3 ? "248 113 113" : nivel === 2 ? "251 146 60" : "161 161 170";
+  const corTexto = corStatusTexto(cor, tema);
   const rotulo = nivel === 3 ? "Atrasado" : nivel === 2 ? "Atenção" : "No prazo";
   return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: `rgb(${cor})` }}>
-      <span className={`h-1.5 w-1.5 rounded-full ${nivel >= 2 ? "animate-pulse" : ""}`} style={{ background: `rgb(${cor})` }} />
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: `rgb(${corTexto})` }}>
+      <span className={`h-1.5 w-1.5 rounded-full ${nivel >= 2 ? "animate-pulse" : ""}`} style={{ background: `rgb(${corTexto})` }} />
       {rotulo}
     </span>
   );

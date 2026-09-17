@@ -3,12 +3,16 @@
 :root {
   --background: #09090b;
   --foreground: #f4f4f5;
+  /* Cor de destaque da marca — âmbar no tema escuro (padrão histórico),
+     azul no tema claro (ver bloco [data-theme="claro"] mais abaixo).
+     "RGB espaço-separado" pra poder compor alpha com rgb(var(...) / .3). */
+  --cor-acento-rgb: 255 199 0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-manrope);
   --font-display: var(--font-rajdhani);
   --font-mono: var(--font-jetbrains-mono);
 }
@@ -20,9 +24,9 @@
    ideia é parecer uma foto tirada dentro da oficina de noite, não um
    papel de parede abstrato. */
 body {
-  background: radial-gradient(ellipse 70% 55% at 18% -8%, rgba(255, 199, 0, 0.12), transparent 58%),
-    radial-gradient(ellipse 95% 85% at 96% 112%, rgba(255, 153, 0, 0.16), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 100% 60%, rgba(255, 199, 0, 0.06), transparent 65%),
+  background: radial-gradient(ellipse 70% 55% at 18% -8%, rgb(var(--cor-acento-rgb) / 0.12), transparent 58%),
+    radial-gradient(ellipse 95% 85% at 96% 112%, rgb(var(--cor-acento-rgb) / 0.16), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 60%, rgb(var(--cor-acento-rgb) / 0.06), transparent 65%),
     linear-gradient(165deg, #0c0d11 0%, #08090b 45%, #050506 100%);
   background-attachment: fixed;
   color: var(--foreground);
@@ -35,7 +39,7 @@ body::before {
   z-index: -9;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 55% 45% at 15% 0%, rgba(255, 199, 0, 0.07), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 15% 0%, rgb(var(--cor-acento-rgb) / 0.07), transparent 55%),
     radial-gradient(ellipse 140% 100% at 50% 55%, transparent 38%, rgba(0, 0, 0, 0.68) 100%);
 }
 
@@ -147,13 +151,13 @@ body::after {
 /* ── Campo de instrumento: input com linha de base que acende em âmbar
    no foco, em vez da borda cinza genérica de formulário de SaaS ──────── */
 .campo-instrumento {
-  border-bottom: 2px solid rgba(255, 199, 0, 0);
+  border-bottom: 2px solid rgb(var(--cor-acento-rgb) / 0);
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .campo-instrumento:focus {
-  border-bottom-color: rgba(255, 199, 0, 0.75);
+  border-bottom-color: rgb(var(--cor-acento-rgb) / 0.75);
   background: rgba(0, 0, 0, 0.45);
-  box-shadow: 0 4px 12px -6px rgba(255, 199, 0, 0.35);
+  box-shadow: 0 4px 12px -6px rgb(var(--cor-acento-rgb) / 0.35);
 }
 
 /* ── Vidro do cartão de login: a mesma família do .vidro-garagem, mas
@@ -176,7 +180,7 @@ body::after {
   inset: 0 0 auto 0;
   height: 2px;
   border-radius: 9999px 9999px 0 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 199, 0, 0.55) 50%, transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--cor-acento-rgb) / 0.55) 50%, transparent);
 }
 
 /* ── Faixa lateral de status: a barra colorida na borda esquerda dos
@@ -202,10 +206,10 @@ body::after {
 .placa-marca {
   position: relative;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 199, 0, 0.22);
+  border: 1px solid rgb(var(--cor-acento-rgb) / 0.22);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 24px rgba(255, 199, 0, 0.05),
+    inset 0 0 24px rgb(var(--cor-acento-rgb) / 0.05),
     0 18px 34px -18px rgba(0, 0, 0, 0.9);
 }
 .placa-marca-rebite {
@@ -221,15 +225,67 @@ body::after {
    rodagem (repeating-conic-gradient) em vez de um círculo liso — é o
    detalhe que faz a trilha parecer pista, não uma lista de bolinhas. */
 .pneu-trilha {
-  background:
-    repeating-conic-gradient(from 0deg, rgba(0, 0, 0, 0.9) 0deg 8deg, rgba(38, 38, 42, 0.9) 8deg 16deg);
+  position: relative;
+  isolation: isolate;
   box-shadow:
     inset 0 0 0 3px #0a0a0b,
     inset 0 1px 2px rgba(255, 255, 255, 0.08);
 }
+/* A banda de rodagem fica num ::before próprio (não no background direto
+   do elemento) pra poder girar sozinha sem levar o número do meio junto. */
+.pneu-trilha::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(0, 0, 0, 0.9) 0deg 8deg, rgba(38, 38, 42, 0.9) 8deg 16deg);
+}
 .pneu-trilha-aro {
+  position: relative;
   background: radial-gradient(circle at 35% 30%, #3f3f46, #18181b 75%);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Pneu "rodando": etapa da Trilha da Moto com pelo menos uma OS parada
+   ali — a banda de rodagem gira que nem uma roda de verdade andando, e
+   uma luz da cor do status pulsa atrás (`.pneu-luz`), separado do glow
+   estático que já existia no anel (esse continua vindo do boxShadow
+   inline, que usa a cor do status também). */
+.pneu-trilha--girando::before {
+  animation: girar-pneu 2.2s linear infinite;
+}
+@keyframes girar-pneu {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.pneu-luz {
+  position: absolute;
+  inset: -10px;
+  z-index: -2;
+  border-radius: 9999px;
+  filter: blur(9px);
+  pointer-events: none;
+  animation: pulsar-luz 2.4s ease-in-out infinite;
+}
+@keyframes pulsar-luz {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pneu-trilha--girando::before,
+  .pneu-luz {
+    animation: none;
+  }
 }
 
 /* ── Cantos de HUD + anel de instrumento ──────────────────────────────
@@ -243,7 +299,7 @@ body::after {
   z-index: -9;
   width: 28px;
   height: 28px;
-  border-color: rgba(255, 199, 0, 0.22);
+  border-color: rgb(var(--cor-acento-rgb) / 0.22);
   pointer-events: none;
 }
 .hud-canto-tl {
@@ -294,5 +350,107 @@ body::after {
     right: -100px;
     bottom: -100px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TEMA CLARO — pedido do Christian: degradês azuis, detalhes pretos,
+   ao lado do escuro industrial que já existia (não no lugar dele). O
+   atributo data-theme="claro"/"claro" no <html> é controlado por
+   useBikerStore.alternarTema (ver TemaToggle.tsx) e cravado antes do
+   primeiro paint por um script inline em app/layout.tsx.
+
+   Estratégia: a cor de destaque (--cor-acento-rgb) já é usada em vez de
+   âmbar cravado em quase todo efeito de marca acima (fundo, campo,
+   vidro-login, placa-marca, cantos de HUD) — só trocar essa variável já
+   resolve grande parte. O resto é uma cascata de overrides nas classes
+   utilitárias do Tailwind que as telas usam direto (text-zinc-400,
+   bg-white/5, border-white/10 …) — em vez de reescrever cada tela por
+   tema, essas classes específicas são sobrescritas quando o atributo
+   está presente. Ícones/textos sobre FOTOS reais (câmera, thumbnails)
+   ficam de fora de propósito: bg-black/60, bg-black/70, bg-white/80 e
+   text-white só aparecem sobre imagem capturada, não sobre o fundo do
+   app, e uma legenda escura-com-texto-branco sobre uma foto qualquer
+   precisa continuar assim nos dois temas. */
+:root[data-theme="claro"] {
+  --cor-acento-rgb: 37 99 235; /* azul-600 */
+  --background: #eef2fb;
+  --foreground: #0a0a0f;
+}
+
+[data-theme="claro"] body {
+  background: radial-gradient(ellipse 70% 55% at 18% -8%, rgb(var(--cor-acento-rgb) / 0.16), transparent 58%),
+    radial-gradient(ellipse 95% 85% at 96% 112%, rgb(var(--cor-acento-rgb) / 0.14), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 60%, rgb(var(--cor-acento-rgb) / 0.06), transparent 65%),
+    linear-gradient(165deg, #fbfcff 0%, #eef2fb 45%, #e2e9f9 100%);
+}
+[data-theme="claro"] body::before {
+  background: radial-gradient(ellipse 55% 45% at 15% 0%, rgb(var(--cor-acento-rgb) / 0.09), transparent 55%),
+    radial-gradient(ellipse 140% 100% at 50% 55%, transparent 45%, rgb(var(--cor-acento-rgb) / 0.06) 100%);
+}
+[data-theme="claro"] body::after {
+  opacity: 0.03;
+}
+
+[data-theme="claro"] .vidro-garagem {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(10, 20, 45, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 20px 40px -28px rgb(var(--cor-acento-rgb) / 0.28);
+}
+[data-theme="claro"] .vidro-login {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(10, 20, 45, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 24px 48px -24px rgb(var(--cor-acento-rgb) / 0.32);
+}
+[data-theme="claro"] .campo-instrumento:focus {
+  background: rgba(255, 255, 255, 0.75);
+}
+[data-theme="claro"] .placa-marca {
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 24px rgb(var(--cor-acento-rgb) / 0.07),
+    0 18px 34px -18px rgb(var(--cor-acento-rgb) / 0.35);
+}
+[data-theme="claro"] .trail-plate-grunge {
+  background: radial-gradient(circle, rgba(10, 20, 45, 0.18), transparent 70%);
+}
+
+/* Cascata de utilitários Tailwind usados direto nas telas. */
+[data-theme="claro"] .text-zinc-50,
+[data-theme="claro"] .text-zinc-100,
+[data-theme="claro"] .text-zinc-200 {
+  color: #0a0a0f;
+}
+[data-theme="claro"] .text-zinc-300 {
+  color: #27272a;
+}
+[data-theme="claro"] .text-zinc-400 {
+  color: #3f3f46;
+}
+[data-theme="claro"] .text-zinc-500 {
+  color: #52525b;
+}
+[data-theme="claro"] .text-zinc-600,
+[data-theme="claro"] .text-zinc-700 {
+  color: #71717a;
+}
+[data-theme="claro"] .border-white\/5 {
+  border-color: rgba(10, 20, 45, 0.06);
+}
+[data-theme="claro"] .border-white\/10 {
+  border-color: rgba(10, 20, 45, 0.1);
+}
+[data-theme="claro"] .border-white\/20 {
+  border-color: rgba(10, 20, 45, 0.16);
+}
+[data-theme="claro"] .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(10, 20, 45, 0.08);
+}
+[data-theme="claro"] .bg-white\/5 {
+  background-color: rgba(10, 20, 45, 0.045);
+}
+[data-theme="claro"] .bg-white\/10 {
+  background-color: rgba(10, 20, 45, 0.07);
+}
+[data-theme="claro"] .bg-black\/30 {
+  background-color: rgba(255, 255, 255, 0.6);
 }
 
