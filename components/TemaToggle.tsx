@@ -7,6 +7,13 @@ import { useBikerStore } from "@/store/useBikerStore";
  * degradês azuis e detalhes pretos, ao lado do escuro industrial que já
  * existia. Fica no header, pequeno, no mesmo espírito de placa dos
  * outros controles (não é um switch genérico de SaaS).
+ *
+ * Fica em `right-20` (não `right-4`) de propósito: o botão "Sair" do
+ * AuthGate (components/AuthGate.tsx) usa exatamente `fixed right-4
+ * top-4 z-40` em qualquer tela autenticada — com os dois no mesmo
+ * canto, o Sair ficava por cima e escondia esse botão em toda tela
+ * menos a de login (onde o Sair não existe). Por isso "só aparecia no
+ * login". Os dois ficam lado a lado agora.
  */
 export default function TemaToggle() {
   const tema = useBikerStore((s) => s.tema);
@@ -19,7 +26,7 @@ export default function TemaToggle() {
       onClick={alternarTema}
       aria-label={claro ? "Mudar para tema escuro" : "Mudar para tema claro"}
       title={claro ? "Tema escuro" : "Tema claro"}
-      className="trail-plate fixed right-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full text-zinc-900 transition-transform hover:-translate-y-0.5 active:scale-95"
+      className="trail-plate fixed right-20 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full text-zinc-900 transition-transform hover:-translate-y-0.5 active:scale-95"
     >
       {claro ? (
         // lua — indica que clicar leva pro escuro

@@ -62,7 +62,12 @@ export default function TrilhaDaMoto() {
         </span>
       </div>
 
-      <div className="relative flex gap-0 overflow-x-auto pb-2">
+      {/* py extra (não só pb) pra sobrar espaço pro glow (.pneu-luz) do
+          pneu aceso, que estoura o círculo — sem essa folga o
+          overflow-x-auto corta o brilho em cima/embaixo (overflow-x !=
+          visible força o overflow-y a cortar também, mesmo sem
+          intenção). */}
+      <div className="relative flex gap-0 overflow-x-auto pt-3 pb-3">
         {COLUNAS_KANBAN.map((status, i) => {
           const n = contagem?.[status] ?? 0;
           const cor = STATUS_COR[status];

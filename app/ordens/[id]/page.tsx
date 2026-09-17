@@ -6,6 +6,7 @@ import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
 import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
+import AprovacaoOS from "@/components/AprovacaoOS";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
 import { ORDENS_DEMO, ITENS_DEMO, PRODUTOS_DEMO } from "@/lib/dados-demo";
@@ -419,6 +420,16 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
             <span className="font-display text-sm uppercase text-zinc-200">Total</span>
             <span className="font-mono text-lg font-bold text-zinc-50">{brl(total)}</span>
           </div>
+
+          <AprovacaoOS
+            os={os}
+            itens={itens}
+            total={total}
+            onStatusAtualizado={(novoStatus) => {
+              setOs((atual) => (atual ? { ...atual, status: novoStatus } : atual));
+              setStatusSelecionado(novoStatus);
+            }}
+          />
         </PainelVidro>
       </RevealItem>
 

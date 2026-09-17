@@ -72,10 +72,6 @@ export default function AppHeader() {
       >
         TECNOMOTOS
       </motion.h1>
-
-      {telaLogin && (
-        <p className="-mt-1 text-[11px] uppercase tracking-[.3em] text-zinc-500">Sistema da oficina</p>
-      )}
     </header>
   );
 }

@@ -1,13 +1,49 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, useGLTF } from "@react-three/drei";
 import { motion } from "motion/react";
-import { Box3, type Group, Vector3 } from "three";
+import { Box3, PerspectiveCamera, type Group, Vector3 } from "three";
 import { useBikerStore } from "@/store/useBikerStore";
 
 const CAMINHO_MODELO = "/models/wheel.glb";
+
+// Quanto da largura do container (em unidades de mundo, no plano da
+// roda) precisa ficar visível pra ela nunca ser cortada nas laterais.
+const LARGURA_VISIVEL_ALVO = 3.05;
+
+/**
+ * O painel da roda é metade da tela — no celular isso dá um recorte bem
+ * estreito e ALTO (ex.: ~180px de largura por ~800px de altura). O
+ * `fov` do `<Canvas>` é sempre o campo de visão VERTICAL do three.js; num
+ * recorte estreito como esse, o campo de visão HORIZONTAL correspondente
+ * (fov vertical × aspect) fica minúsculo — a câmera acaba enxergando só
+ * uma fatia vertical bem fina da roda, ampliada, o que na prática
+ * aparecia como um "flash" de reflexo de cromado em vez da roda inteira
+ * (era exatamente o bug que o Christian reportou: "roda cortada"/"flash
+ * de luz no meio da tela"). Esse componente recalcula o `fov` a cada
+ * redimensionamento pra manter fixa a LARGURA horizontal visível
+ * (LARGURA_VISIVEL_ALVO), não a altura — isso garante que a roda sempre
+ * caiba de lado a lado, não importa o quão estreito o painel fique.
+ */
+function AjustarCameraAoContainer() {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) return;
+    const aspecto = size.width / size.height;
+    const distancia = camera.position.z;
+    const meiaLarguraAlvo = LARGURA_VISIVEL_ALVO / 2;
+    const fovHorizontalRad = 2 * Math.atan(meiaLarguraAlvo / distancia);
+    const fovVerticalRad = 2 * Math.atan(Math.tan(fovHorizontalRad / 2) / aspecto);
+    camera.fov = (fovVerticalRad * 180) / Math.PI;
+    camera.aspect = aspecto;
+    camera.updateProjectionMatrix();
+  }, [camera, size]);
+
+  return null;
+}
 
 /**
  * Roda real, não mais procedural: o Christian baixou ele mesmo o .glb do
@@ -95,10 +131,13 @@ export default function WheelBackground3D() {
 
   // A borda que "cola" no centro da tela (perto do conteúdo) é sempre a
   // borda interna do painel, que troca de lado conforme ele desliza.
+  // Fade só bem no finalzinho (90% → 100%) — antes começava em 78% e
+  // "comia" quase um quarto da roda; o pedido foi pra ela aparecer
+  // inteira, ficando opaca só na pontinha final.
   const mascara =
     ladoRoda === "esquerda"
-      ? "linear-gradient(to right, black 0%, black 78%, transparent 100%)"
-      : "linear-gradient(to left, black 0%, black 78%, transparent 100%)";
+      ? "linear-gradient(to right, black 0%, black 90%, transparent 100%)"
+      : "linear-gradient(to left, black 0%, black 90%, transparent 100%)";
 
   return (
     <motion.div
@@ -109,13 +148,14 @@ export default function WheelBackground3D() {
       transition={{ type: "spring", stiffness: 70, damping: 16, mass: 1.2 }}
     >
       <Canvas dpr={[1, 1.6]} camera={{ position: [0, 0, 5.2], fov: 34 }} gl={{ alpha: true, antialias: true }}>
+        <AjustarCameraAoContainer />
         <ambientLight intensity={0.45} />
-        <directionalLight position={[3, 4, 5]} intensity={2} color="#fff4e0" />
-        <directionalLight position={[-4, -1, -3]} intensity={0.85} color="#ffb347" />
-        <directionalLight position={[0.5, 0.5, 6]} intensity={1.1} color="#ffffff" />
+        <directionalLight position={[3, 4, 5]} intensity={1.3} color="#fff4e0" />
+        <directionalLight position={[-4, -1, -3]} intensity={0.6} color="#ffb347" />
+        <directionalLight position={[0.5, 0.5, 6]} intensity={0.7} color="#ffffff" />
         <Suspense fallback={null}>
           <Roda />
-          <Environment preset="city" />
+          <Environment preset="city" environmentIntensity={0.6} />
         </Suspense>
       </Canvas>
     </motion.div>
