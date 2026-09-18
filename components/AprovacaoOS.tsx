@@ -22,15 +22,21 @@ const STATUS_QUE_AVANCAM: StatusOS[] = ["recepcao", "diagnostico"];
  * isso na tela (Christian: "não apareceu o botão para enviar a OS para
  * aprovação e assinatura do cliente").
  *
- * "Baixar PDF" gera o orçamento com a marca da oficina e uma área de
- * assinatura, pronto pra imprimir na hora. "Enviar para aprovação"
- * tenta o compartilhamento nativo do navegador já com o PDF anexado
- * (funciona em Android/Chrome, por exemplo — abre a folha de
- * compartilhar do sistema com o WhatsApp como uma das opções); onde
- * isso não é suportado (a maioria dos desktops), baixa o PDF e abre o
- * WhatsApp com a mensagem pronta, faltando só anexar o arquivo à mão.
+ * "Enviar para aprovação" abre o WhatsApp direto no número já
+ * cadastrado do cliente (não um compartilhamento genérico onde ele
+ * precisa escolher o contato à mão) com um link pra
+ * `/aprovar/[id]` — uma página pública, sem login, no mesmo visual do
+ * sistema, onde o cliente vê o orçamento, baixa o PDF e aprova. Era
+ * pedido explícito do Christian: "mandar direto pro whats cadastrado
+ * um link para ele assinar como se tivesse dentro do sistema e tbm o
+ * PDF" — o link cobre as duas coisas (a tela pública tem o próprio
+ * botão de baixar o PDF), então não precisa tentar anexar o arquivo
+ * na mensagem (o que também não é confiável entre navegadores).
  *
- * Em qualquer um dos dois casos de envio, se a OS ainda estiver em
+ * "Baixar PDF" continua aqui, à parte, pro Christian imprimir na hora
+ * se for o caso.
+ *
+ * Em qualquer um dos dois casos, se a OS ainda estiver em
  * "recepção"/"diagnóstico" ela avança sozinha pra "aguardando_aprovacao"
  * — status que já existia no pipeline (Trilha da Moto/Kanban) mas que
  * nada colocava a OS nele até agora.
@@ -71,41 +77,23 @@ export default function AprovacaoOS({ os, itens, total, onStatusAtualizado }: Ap
   };
 
   const enviarParaCliente = async () => {
-    setEnviando(true);
     setErro("");
+    const telefone = os.clientes?.telefone?.replace(/\D/g, "");
+    if (!telefone) {
+      setErro("Esse cliente não tem WhatsApp cadastrado — adicione o telefone antes de enviar.");
+      return;
+    }
+    setEnviando(true);
     try {
-      const blob = await gerarPdfOrcamento(os, itens, total);
-      const texto = `Olá${os.clientes?.nome ? ", " + os.clientes.nome : ""}! Segue o orçamento da OS ${String(
-        os.numero,
-      ).padStart(4, "0")} da TECNOMOTOS para aprovação. Total: ${brl(total)}.`;
-
-      const arquivo = new File([blob], nomeArquivo, { type: "application/pdf" });
-      const suportaArquivo =
-        typeof navigator !== "undefined" &&
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [arquivo] });
-
-      if (suportaArquivo) {
-        await navigator.share({ files: [arquivo], title: `Orçamento OS ${os.numero}`, text: texto });
-      } else {
-        // Sem suporte a anexar arquivo no compartilhamento (a maioria
-        // dos navegadores de desktop): baixa o PDF e abre o WhatsApp
-        // com o texto pronto — só falta anexar o arquivo na conversa.
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = nomeArquivo;
-        a.click();
-        URL.revokeObjectURL(url);
-        const telefone = os.clientes?.telefone?.replace(/\D/g, "");
-        const linkZap = `https://wa.me/${telefone ? "55" + telefone : ""}?text=${encodeURIComponent(
-          `${texto} (baixei o PDF — é só anexar aqui na conversa)`,
-        )}`;
-        window.open(linkZap, "_blank", "noopener,noreferrer");
-      }
+      const linkPublico = `${window.location.origin}/aprovar/${os.id}`;
+      const texto =
+        `Olá${os.clientes?.nome ? ", " + os.clientes.nome : ""}! Segue o orçamento da OS ${String(os.numero).padStart(
+          4,
+          "0",
+        )} da TECNOMOTOS. Total: ${brl(total)}. ` +
+        `Você pode ver os detalhes, baixar o PDF e aprovar direto por aqui: ${linkPublico}`;
+      window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
       await avancarParaAguardandoAprovacao();
-    } catch (e) {
-      if ((e as Error)?.name !== "AbortError") setErro("Não deu para enviar agora.");
     } finally {
       setEnviando(false);
     }
@@ -114,7 +102,7 @@ export default function AprovacaoOS({ os, itens, total, onStatusAtualizado }: Ap
   return (
     <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
       <TrailPlateButton tamanho="sm" onClick={enviarParaCliente} disabled={enviando} className="flex-1">
-        {enviando ? "Preparando…" : "Enviar para aprovação"}
+        {enviando ? "Abrindo WhatsApp…" : "Enviar para aprovação"}
       </TrailPlateButton>
       <button
         type="button"

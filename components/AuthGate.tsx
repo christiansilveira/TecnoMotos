@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import Campo from "./ui/Campo";
 import TrailPlateButton from "./TrailPlateButton";
@@ -16,6 +17,16 @@ import { useBikerStore } from "@/store/useBikerStore";
  * app navegável sem Supabase configurado, igual ao resto do sistema.
  */
 export default function AuthGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // "/aprovar/[id]" é a página que o cliente recebe por WhatsApp pra
+  // ver o orçamento e aprovar/assinar sem precisar de login — o
+  // Christian pediu explicitamente um link público "como se tivesse
+  // dentro do sistema". Os dados dessa tela vêm de uma rota própria
+  // (app/api/orcamento-publico) que já filtra o que pode ser exposto
+  // sem sessão, então não tem problema de segurança em pular o portão
+  // aqui.
+  const rotaPublica = pathname?.startsWith("/aprovar/") ?? false;
+
   const [pronto, setPronto] = useState(false);
   const [sessao, setSessao] = useState<Session | null>(null);
   const [modo, setModo] = useState<"entrar" | "criar">("entrar");
@@ -82,7 +93,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   };
 
   const setTelaLogin = useBikerStore((s) => s.setTelaLogin);
-  const mostrarLogin = pronto && !DEMO && !!supabase && !sessao;
+  const mostrarLogin = pronto && !DEMO && !!supabase && !sessao && !rotaPublica;
 
   // Avisa o AppHeader pra dar mais presença à logo enquanto essa tela
   // estiver na frente — some de novo assim que sair dela (login feito,
@@ -91,6 +102,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     setTelaLogin(mostrarLogin);
     return () => setTelaLogin(false);
   }, [mostrarLogin, setTelaLogin]);
+
+  // Pula o portão inteiro pra rota pública — nem espera a checagem de
+  // sessão terminar, pra não atrasar a tela que o cliente recebeu.
+  if (rotaPublica) return <>{children}</>;
 
   if (!pronto) return null;
   if (DEMO || !supabase) return <>{children}</>;

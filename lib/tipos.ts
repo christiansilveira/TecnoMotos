@@ -114,6 +114,21 @@ export interface ItemOS {
   valor_unit: number;
 }
 
+/** Só os campos que o PDF do orçamento (lib/gerarPdfOrcamento.ts) de
+ * fato usa — `OrdemServico` completa satisfaz isso naturalmente
+ * (estrutural), mas a página pública de aprovação (app/aprovar/[id])
+ * busca os dados por uma API própria que devolve só isso, sem os
+ * campos internos (ids, valor_pecas/servicos/desconto etc.) — não
+ * precisa fingir ser uma `OrdemServico` completa só pra gerar o PDF. */
+export interface DadosOSParaPdf {
+  numero: number;
+  km_entrada: number | null;
+  relato_cliente: string | null;
+  diagnostico: string | null;
+  veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano"> | null;
+  clientes?: Pick<Cliente, "nome" | "telefone"> | null;
+}
+
 export interface Produto {
   id: string;
   nome: string;

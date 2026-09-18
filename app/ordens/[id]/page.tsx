@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
 import Campo from "@/components/ui/Campo";
@@ -36,6 +37,7 @@ function somarItens(itens: ItemOS[], desconto: number) {
 
 export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const { id } = use(params);
+  const router = useRouter();
   const [os, setOs] = useState<OrdemServico | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -44,6 +46,9 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const [statusSelecionado, setStatusSelecionado] = useState<StatusOS | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [erroCancelar, setErroCancelar] = useState("");
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [formAberto, setFormAberto] = useState(false);
@@ -128,6 +133,29 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
     setSalvo(true);
     setTimeout(() => setSalvo(false), 2000);
     carregar();
+  };
+
+  /** "Excluir a OS" aqui é sempre marcar como cancelada (soft) — o
+   * status "cancelado" já existe na paleta/pipeline desde o começo do
+   * projeto, mas nenhuma tela dava um jeito de chegar nele. Apagar de
+   * verdade quebraria o histórico (itens lançados, movimentos de
+   * estoque já baixados) — cancelar preserva tudo e ainda dá pra
+   * reverter depois escolhendo outro status normalmente. */
+  const cancelarOS = async () => {
+    setCancelando(true);
+    setErroCancelar("");
+    if (DEMO || !supabase) {
+      await new Promise((r) => setTimeout(r, 350));
+      router.push("/ordens");
+      return;
+    }
+    const { error } = await supabase.from("ordens_servico").update({ status: "cancelado" }).eq("id", id);
+    setCancelando(false);
+    if (error) {
+      setErroCancelar(error.message);
+      return;
+    }
+    router.push("/ordens");
   };
 
   const limparFormItem = () => {
@@ -463,6 +491,47 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
           {erro && <p className="mt-3 text-sm text-red-400">{erro}</p>}
         </PainelVidro>
       </RevealItem>
+
+      {os.status !== "cancelado" && os.status !== "entregue" && (
+        <RevealItem>
+          <PainelVidro className="flex flex-col gap-3 p-5" style={{ borderColor: "rgba(248,113,113,.25)" }}>
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Zona de exclusão</p>
+            {!confirmandoCancelamento ? (
+              <TrailPlateButton
+                tamanho="sm"
+                variante="perigo"
+                onClick={() => setConfirmandoCancelamento(true)}
+                className="w-fit"
+              >
+                Cancelar OS
+              </TrailPlateButton>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-zinc-300">
+                  A OS some do quadro ativo e vira "Cancelada", mas os itens lançados e o histórico ficam preservados.
+                  Confirma?
+                </p>
+                {erroCancelar && (
+                  <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                    {erroCancelar}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <TrailPlateButton variante="perigo" onClick={cancelarOS} disabled={cancelando}>
+                    {cancelando ? "Cancelando…" : "Sim, cancelar OS"}
+                  </TrailPlateButton>
+                  <button
+                    onClick={() => setConfirmandoCancelamento(false)}
+                    className="rounded-md border border-white/10 px-4 text-xs font-bold uppercase tracking-wide text-zinc-400 hover:text-zinc-200"
+                  >
+                    Voltar
+                  </button>
+                </div>
+              </div>
+            )}
+          </PainelVidro>
+        </RevealItem>
+      )}
     </RevealGroup>
   );
 }

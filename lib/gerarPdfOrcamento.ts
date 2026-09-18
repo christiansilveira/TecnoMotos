@@ -1,4 +1,4 @@
-import type { ItemOS, OrdemServico } from "./tipos";
+import type { DadosOSParaPdf, ItemOS } from "./tipos";
 import { brl } from "./tipos";
 
 /** Busca a logo do app e devolve como data URL — jsPDF precisa disso
@@ -27,7 +27,7 @@ async function logoEmBase64(): Promise<string | null> {
  * porque a lista de itens de uma OS é curta — não precisa de nada além
  * de `text`/`rect`/`line`.
  */
-export async function gerarPdfOrcamento(os: OrdemServico, itens: ItemOS[], total: number): Promise<Blob> {
+export async function gerarPdfOrcamento(os: DadosOSParaPdf, itens: ItemOS[], total: number): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const largura = doc.internal.pageSize.getWidth();

@@ -10,7 +10,10 @@ import { usePathname } from "next/navigation";
  */
 export default function NavVoltar() {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+  // "/" (home) e "/aprovar/..." (página pública que o cliente recebe
+  // por WhatsApp, sem login — voltar levaria pro login/telas internas,
+  // que não fazem sentido pra quem está de fora).
+  if (pathname === "/" || pathname?.startsWith("/aprovar/")) return null;
 
   return (
     <Link

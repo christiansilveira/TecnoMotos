@@ -9,9 +9,24 @@ import { useBikerStore } from "@/store/useBikerStore";
 
 const CAMINHO_MODELO = "/models/wheel.glb";
 
-// Quanto da largura do container (em unidades de mundo, no plano da
-// roda) precisa ficar visível pra ela nunca ser cortada nas laterais.
-const LARGURA_VISIVEL_ALVO = 3.05;
+// Largura (em unidades de mundo, no plano da roda) que fica visível na
+// largura do painel — controla o quão "grande"/preenchida a roda
+// aparece. Interpolado pelo aspect ratio do container (ver função
+// abaixo): num painel bem estreito e alto (celular), dá pra "chegar
+// mais perto" (valor menor) porque sobra muita altura de sobra — a
+// roda passa a preencher bem mais da largura do painel, em troca de um
+// corte natural em cima/embaixo (ela já nasceu pensada como "cortada
+// pela borda da tela", não como um elemento que precisa caber inteiro
+// sem cortar nada). Num painel mais largo (desktop), a roda já ocupa
+// boa parte da largura sem precisar desse zoom.
+const ALVO_MOBILE = { aspecto: 0.28, largura: 1.85 };
+const ALVO_DESKTOP = { aspecto: 0.8, largura: 3.0 };
+
+function larguraVisivelAlvo(aspecto: number): number {
+  const t = (aspecto - ALVO_MOBILE.aspecto) / (ALVO_DESKTOP.aspecto - ALVO_MOBILE.aspecto);
+  const tClampado = Math.min(1, Math.max(0, t));
+  return ALVO_MOBILE.largura + (ALVO_DESKTOP.largura - ALVO_MOBILE.largura) * tClampado;
+}
 
 /**
  * O painel da roda é metade da tela — no celular isso dá um recorte bem
@@ -23,9 +38,20 @@ const LARGURA_VISIVEL_ALVO = 3.05;
  * aparecia como um "flash" de reflexo de cromado em vez da roda inteira
  * (era exatamente o bug que o Christian reportou: "roda cortada"/"flash
  * de luz no meio da tela"). Esse componente recalcula o `fov` a cada
- * redimensionamento pra manter fixa a LARGURA horizontal visível
- * (LARGURA_VISIVEL_ALVO), não a altura — isso garante que a roda sempre
- * caiba de lado a lado, não importa o quão estreito o painel fique.
+ * redimensionamento pra manter fixa a LARGURA horizontal visível — isso
+ * garante que a roda sempre fique reconhecível de lado a lado, não
+ * importa o quão estreito o painel fique.
+ *
+ * Primeira versão usava uma largura-alvo fixa grande o bastante pra
+ * roda inteira caber com folga — resolvia o "flash", mas criava um
+ * problema novo: num painel bem alto e estreito (celular), isso deixa
+ * a roda "certinha" mas minúscula (o painel tem MUITO mais altura que
+ * largura, e a roda, sendo redonda, fica do tamanho da largura —
+ * pequena contra uma tela tão alta). `larguraVisivelAlvo` interpola
+ * esse valor pelo aspect: quanto mais estreito o painel, menor a
+ * largura-alvo (mais "zoom"), deixando a roda visivelmente maior —
+ * ela passa a vazar um pouco por cima/baixo do painel, o que é normal
+ * pro estilo do fundo (nasceu pra ser "cortada pela borda da tela").
  */
 function AjustarCameraAoContainer() {
   const { camera, size } = useThree();
@@ -34,7 +60,7 @@ function AjustarCameraAoContainer() {
     if (!(camera instanceof PerspectiveCamera)) return;
     const aspecto = size.width / size.height;
     const distancia = camera.position.z;
-    const meiaLarguraAlvo = LARGURA_VISIVEL_ALVO / 2;
+    const meiaLarguraAlvo = larguraVisivelAlvo(aspecto) / 2;
     const fovHorizontalRad = 2 * Math.atan(meiaLarguraAlvo / distancia);
     const fovVerticalRad = 2 * Math.atan(Math.tan(fovHorizontalRad / 2) / aspecto);
     camera.fov = (fovVerticalRad * 180) / Math.PI;
