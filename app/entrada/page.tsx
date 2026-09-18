@@ -1,12 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
+import BadgeStatus from "@/components/ui/BadgeStatus";
 import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
 import CameraCaptura from "@/components/CameraCaptura";
 import { DEMO, supabase } from "@/lib/supabase";
+import { buscarHistoricoDemoPorPlaca } from "@/lib/dados-demo";
+import { brl, normalizarPlaca, type StatusOS } from "@/lib/tipos";
+
+interface HistoricoPlaca {
+  veiculoId: string;
+  clienteId: string;
+  cliente: { nome: string; telefone: string | null };
+  veiculo: {
+    marca: string | null;
+    modelo: string | null;
+    ano: number | null;
+    km_atual: number | null;
+    fotos_url: string[] | null;
+  };
+  ordens: { id: string; numero: number; status: StatusOS; aberta_em: string; valor_total: number }[];
+}
 
 /**
  * Versão simplificada da recepção: cadastro por formulário, com a
@@ -30,6 +48,15 @@ export default function EntradaPage() {
   const [fotoPlaca, setFotoPlaca] = useState<string | null>(null);
   const [lendoPlaca, setLendoPlaca] = useState(false);
   const [avisoLeitura, setAvisoLeitura] = useState("");
+
+  // Histórico do cliente/moto quando a placa digitada já existe no
+  // cadastro — pedido do Christian: "ao puxar a mesma placa, tem que
+  // puxar um histórico daquele cliente, moto". `historico` guarda o
+  // cliente/veículo/OS anteriores encontrados; quando presente, salvar
+  // reaproveita esses ids em vez de duplicar cliente/veículo.
+  const [consultandoPlaca, setConsultandoPlaca] = useState(false);
+  const [historico, setHistorico] = useState<HistoricoPlaca | null>(null);
+  const [placaConsultada, setPlacaConsultada] = useState("");
 
   // Fotos gerais da moto (carroceria, riscos, avarias) — separadas da
   // foto da placa: ficam salvas no arquivo do veículo pra consulta
@@ -66,9 +93,11 @@ export default function EntradaPage() {
         return;
       }
       if (resultado.placa) {
-        setPlaca(String(resultado.placa).toUpperCase());
+        const lida = String(resultado.placa).toUpperCase();
+        setPlaca(lida);
         if (resultado.marca) setMarca(String(resultado.marca));
         if (resultado.modelo) setModelo(String(resultado.modelo));
+        consultarPlaca(lida);
       } else {
         setAvisoLeitura("Placa ilegível na foto. Digite manualmente abaixo.");
       }
@@ -76,6 +105,86 @@ export default function EntradaPage() {
       setAvisoLeitura("Não deu para ler a placa agora. Digite manualmente.");
     } finally {
       setLendoPlaca(false);
+    }
+  };
+
+  /** Procura placa/cliente/histórico já cadastrados — chamado ao sair
+   * do campo Placa e depois de uma leitura por foto bem-sucedida.
+   * Encontrando, pré-preenche os campos (só os que ainda estiverem
+   * vazios, pra não sobrescrever o que a pessoa já digitou) e guarda
+   * os ids em `historico` pra `salvar` reaproveitar em vez de duplicar
+   * cliente/veículo no banco. */
+  const consultarPlaca = async (valorPlaca: string) => {
+    const normalizada = normalizarPlaca(valorPlaca);
+    if (normalizada.length < 7 || normalizada === placaConsultada) return;
+    setPlacaConsultada(normalizada);
+    setConsultandoPlaca(true);
+    setHistorico(null);
+    try {
+      if (DEMO || !supabase) {
+        const achado = buscarHistoricoDemoPorPlaca(normalizada);
+        if (achado) {
+          // Dados demo não têm km_atual do veículo (só km_entrada por OS) —
+          // fica null aqui, sem inventar valor.
+          const veiculoHist = {
+            marca: achado.veiculo.marca,
+            modelo: achado.veiculo.modelo,
+            ano: achado.veiculo.ano,
+            km_atual: null,
+            fotos_url: achado.veiculo.fotos_url ?? null,
+          };
+          setHistorico({
+            veiculoId: achado.veiculo.id,
+            clienteId: achado.cliente.id ?? "",
+            cliente: achado.cliente,
+            veiculo: veiculoHist,
+            ordens: achado.historico,
+          });
+          if (!nomeCliente) setNomeCliente(achado.cliente.nome);
+          if (!telefone && achado.cliente.telefone) setTelefone(achado.cliente.telefone);
+          if (!marca && veiculoHist.marca) setMarca(veiculoHist.marca);
+          if (!modelo && veiculoHist.modelo) setModelo(veiculoHist.modelo);
+        }
+        return;
+      }
+
+      const { data: veiculo } = await supabase
+        .from("veiculos")
+        .select("id, marca, modelo, ano, km_atual, fotos_url, cliente_id, clientes(id, nome, telefone)")
+        .eq("placa", normalizada)
+        .maybeSingle();
+      if (!veiculo) return;
+
+      const cliente = Array.isArray(veiculo.clientes) ? veiculo.clientes[0] : veiculo.clientes;
+      const { data: ordens } = await supabase
+        .from("ordens_servico")
+        .select("id, numero, status, aberta_em, valor_total")
+        .eq("veiculo_id", veiculo.id)
+        .order("aberta_em", { ascending: false })
+        .limit(10);
+
+      setHistorico({
+        veiculoId: veiculo.id,
+        clienteId: veiculo.cliente_id,
+        cliente: cliente ?? { nome: "", telefone: null },
+        veiculo: {
+          marca: veiculo.marca,
+          modelo: veiculo.modelo,
+          ano: veiculo.ano,
+          km_atual: veiculo.km_atual,
+          fotos_url: veiculo.fotos_url ?? null,
+        },
+        ordens: (ordens as HistoricoPlaca["ordens"]) ?? [],
+      });
+      if (!nomeCliente && cliente?.nome) setNomeCliente(cliente.nome);
+      if (!telefone && cliente?.telefone) setTelefone(cliente.telefone);
+      if (!marca && veiculo.marca) setMarca(veiculo.marca);
+      if (!modelo && veiculo.modelo) setModelo(veiculo.modelo);
+    } catch {
+      // Consulta é só uma conveniência — se falhar, a pessoa continua
+      // preenchendo o formulário normalmente, sem bloquear nada.
+    } finally {
+      setConsultandoPlaca(false);
     }
   };
 
@@ -92,27 +201,61 @@ export default function EntradaPage() {
         setSalvando(false);
         return;
       }
-      const { data: cliente, error: eCliente } = await supabase
-        .from("clientes")
-        .insert({ nome: nomeCliente, telefone: telefone.replace(/\D/g, "") })
-        .select("id")
-        .single();
-      if (eCliente) throw eCliente;
+      // Placa já cadastrada (achada em `consultarPlaca`, ainda batendo com
+      // o que está digitado agora): reaproveita cliente/veículo em vez de
+      // criar duplicata — era esse o ponto do pedido do Christian ("ao
+      // puxar a mesma placa, tem que puxar um histórico daquele cliente,
+      // moto"). Sem isso, cada visita de um cliente que já veio antes
+      // geraria uma linha nova em `clientes` e `veiculos`.
+      const reaproveitando = historico && normalizarPlaca(placa) === placaConsultada;
 
-      const { data: veiculo, error: eVeiculo } = await supabase
-        .from("veiculos")
-        .insert({ placa: placa.toUpperCase(), cliente_id: cliente.id, marca, modelo, km_atual: km ? +km : null })
-        .select("id")
-        .single();
-      if (eVeiculo) throw eVeiculo;
+      let clienteId: string;
+      let veiculoId: string;
+      let fotosExistentes: string[] = [];
+
+      if (reaproveitando && historico) {
+        clienteId = historico.clienteId;
+        veiculoId = historico.veiculoId;
+        fotosExistentes = historico.veiculo.fotos_url ?? [];
+
+        // Atualiza os dados que a pessoa pode ter corrigido na tela
+        // (nome, telefone, marca/modelo, km) — melhor esforço: se falhar,
+        // a OS ainda assim é aberta com os dados já cadastrados.
+        await supabase
+          .from("clientes")
+          .update({ nome: nomeCliente, telefone: telefone.replace(/\D/g, "") })
+          .eq("id", clienteId);
+        await supabase
+          .from("veiculos")
+          .update({ marca, modelo, km_atual: km ? +km : historico.veiculo.km_atual })
+          .eq("id", veiculoId);
+      } else {
+        const { data: cliente, error: eCliente } = await supabase
+          .from("clientes")
+          .insert({ nome: nomeCliente, telefone: telefone.replace(/\D/g, "") })
+          .select("id")
+          .single();
+        if (eCliente) throw eCliente;
+        clienteId = cliente.id;
+
+        const { data: veiculo, error: eVeiculo } = await supabase
+          .from("veiculos")
+          .insert({ placa: placa.toUpperCase(), cliente_id: clienteId, marca, modelo, km_atual: km ? +km : null })
+          .select("id")
+          .single();
+        if (eVeiculo) throw eVeiculo;
+        veiculoId = veiculo.id;
+      }
 
       // Fotos da moto: melhor esforço — se o bucket de storage ainda não
       // foi criado no Supabase, a OS continua sendo aberta normalmente,
-      // só sem as fotos anexadas ao veículo.
+      // só sem as fotos anexadas ao veículo. Quando o veículo já tinha
+      // fotos de uma visita anterior, as novas são somadas às antigas em
+      // vez de substituí-las.
       if (fotosVeiculo.length > 0) {
         const urls: string[] = [];
         for (let i = 0; i < fotosVeiculo.length; i++) {
-          const caminho = `${veiculo.id}/${Date.now()}-${i}.jpg`;
+          const caminho = `${veiculoId}/${Date.now()}-${i}.jpg`;
           const { error: eUpload } = await supabase.storage
             .from("veiculos-fotos")
             .upload(caminho, fotosVeiculo[i].blob, { contentType: "image/jpeg" });
@@ -122,15 +265,15 @@ export default function EntradaPage() {
           }
         }
         if (urls.length > 0) {
-          await supabase.from("veiculos").update({ fotos_url: urls }).eq("id", veiculo.id);
+          await supabase.from("veiculos").update({ fotos_url: [...fotosExistentes, ...urls] }).eq("id", veiculoId);
         }
       }
 
       const { data: os, error: eOs } = await supabase
         .from("ordens_servico")
         .insert({
-          veiculo_id: veiculo.id,
-          cliente_id: cliente.id,
+          veiculo_id: veiculoId,
+          cliente_id: clienteId,
           km_entrada: km ? +km : null,
           relato_cliente: relato || null,
           status: "diagnostico",
@@ -241,7 +384,65 @@ export default function EntradaPage() {
           </button>
         </div>
 
-        <Campo label="Placa" value={placa} onChange={setPlaca} placeholder="ABC-1D23" />
+        <Campo
+          label="Placa"
+          value={placa}
+          onChange={(v) => {
+            setPlaca(v);
+            // Placa mudou pra algo diferente do que já foi consultado —
+            // limpa o histórico antigo pra não mostrar cliente errado
+            // enquanto a pessoa termina de digitar a placa nova.
+            if (normalizarPlaca(v) !== placaConsultada) {
+              setHistorico(null);
+              setPlacaConsultada("");
+            }
+          }}
+          onBlur={() => consultarPlaca(placa)}
+          placeholder="ABC-1D23"
+        />
+
+        {consultandoPlaca && <p className="text-xs text-zinc-500">Procurando essa placa no cadastro…</p>}
+
+        {historico && (
+          <PainelVidro className="p-4" corStatus="255 199 0">
+            <p className="text-[11px] uppercase tracking-wide text-amber-300">Placa já cadastrada</p>
+            <p className="mt-1 text-sm font-medium text-zinc-100">
+              {historico.cliente.nome || "Cliente sem nome"}
+              {historico.veiculo.marca || historico.veiculo.modelo ? (
+                <span className="text-zinc-400">
+                  {" · "}
+                  {[historico.veiculo.marca, historico.veiculo.modelo, historico.veiculo.ano].filter(Boolean).join(" ")}
+                </span>
+              ) : null}
+            </p>
+            {historico.veiculo.km_atual != null && (
+              <p className="text-xs text-zinc-500">Última km registrada: {historico.veiculo.km_atual.toLocaleString("pt-BR")} km</p>
+            )}
+
+            {historico.ordens.length > 0 ? (
+              <div className="mt-3 divide-y divide-white/5 border-t border-white/10">
+                {historico.ordens.map((os) => (
+                  <Link
+                    key={os.id}
+                    href={`/ordens/${os.id}`}
+                    className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-white/5"
+                  >
+                    <span className="text-zinc-400">
+                      OS {String(os.numero).padStart(4, "0")} · {new Date(os.aberta_em).toLocaleDateString("pt-BR")}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-zinc-300">{brl(os.valor_total)}</span>
+                      <BadgeStatus status={os.status} />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-zinc-500">Nenhuma OS anterior encontrada pra essa moto.</p>
+            )}
+          </PainelVidro>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Marca" value={marca} onChange={setMarca} placeholder="Honda" />
           <Campo label="Modelo" value={modelo} onChange={setModelo} placeholder="CG 160" />

@@ -1,4 +1,4 @@
-import type { ItemOS, OrdemServico, Produto } from "./tipos";
+import { normalizarPlaca, type ItemOS, type MovimentoEstoque, type OrdemServico, type Produto } from "./tipos";
 
 const horasAtras = (h: number) => new Date(Date.now() - h * 36e5).toISOString();
 
@@ -120,9 +120,68 @@ export const ITENS_DEMO: ItemOS[] = [
   { id: "i5", os_id: "o2", tipo: "servico", descricao: "Revisão completa", quantidade: 1, valor_unit: 350 },
 ];
 
+/** Histórico de uma placa em modo demonstração — usado pela Entrada de
+ * Veículo pra simular o mesmo lookup que a versão real faz no
+ * Supabase (ver app/entrada/page.tsx, `consultarPlaca`). Reaproveita
+ * as próprias ORDENS_DEMO em vez de manter uma segunda lista separada
+ * de veículos/histórico. */
+export function buscarHistoricoDemoPorPlaca(placa: string) {
+  const alvo = normalizarPlaca(placa);
+  const doVeiculo = ORDENS_DEMO.filter((os) => normalizarPlaca(os.veiculos?.placa ?? "") === alvo);
+  if (doVeiculo.length === 0) return null;
+  const [maisRecente] = [...doVeiculo].sort((a, b) => +new Date(b.aberta_em) - +new Date(a.aberta_em));
+  return {
+    veiculo: { id: maisRecente.veiculo_id, ...maisRecente.veiculos! },
+    cliente: { id: maisRecente.cliente_id, ...maisRecente.clientes! },
+    historico: doVeiculo
+      .map((os) => ({ id: os.id, numero: os.numero, status: os.status, aberta_em: os.aberta_em, valor_total: os.valor_total }))
+      .sort((a, b) => +new Date(b.aberta_em) - +new Date(a.aberta_em)),
+  };
+}
+
 export const PRODUTOS_DEMO: Produto[] = [
   { id: "p1", nome: "Óleo 5W30 sintético 1L", sku: "OL-5W30", preco_venda: 49.9, preco_custo: 28, estoque_min: 12, unidade: "UN", ativo: true, saldo: 22, situacao: "ok" },
   { id: "p2", nome: "Filtro de óleo", sku: "FO-001", preco_venda: 32, preco_custo: 15, estoque_min: 6, unidade: "UN", ativo: true, saldo: 4, situacao: "critico" },
   { id: "p3", nome: "Pastilha de freio dianteira", sku: "PF-D01", preco_venda: 149, preco_custo: 78, estoque_min: 4, unidade: "JG", ativo: true, saldo: 0, situacao: "zerado" },
   { id: "p4", nome: "Bateria 60Ah", sku: "BAT-60", preco_venda: 459, preco_custo: 290, estoque_min: 2, unidade: "UN", ativo: true, saldo: 3, situacao: "ok" },
+];
+
+/** Saídas de peça por OS em modo demonstração — o que o Dashboard soma
+ * pra mostrar "Peças que saíram" e o ranking de mais usadas (ver
+ * app/dashboard/page.tsx). Espelha o que `estoque_movimentos` guardaria
+ * de verdade no Supabase (tipo "saida_os", sem custo_unit — o mesmo
+ * lançamento feito em app/ordens/[id]/page.tsx), já com o nome do
+ * produto embutido (`produtos: { nome }`) do jeito que a consulta real
+ * devolve via `.select("...produtos(nome)")`. */
+function movimentoDemo(
+  id: string,
+  produtoId: keyof typeof PRODUTOS_POR_ID,
+  quantidade: number,
+  criadoEm: string,
+): MovimentoEstoque {
+  return {
+    id,
+    produto_id: produtoId,
+    tipo: "saida_os",
+    quantidade,
+    criado_em: criadoEm,
+    produtos: { nome: PRODUTOS_POR_ID[produtoId].nome },
+  };
+}
+
+const PRODUTOS_POR_ID = {
+  p1: { nome: "Óleo 5W30 sintético 1L" },
+  p2: { nome: "Filtro de óleo" },
+  p3: { nome: "Pastilha de freio dianteira" },
+  p4: { nome: "Bateria 60Ah" },
+};
+
+export const MOVIMENTOS_DEMO: MovimentoEstoque[] = [
+  movimentoDemo("m1", "p3", 1, horasAtras(80)),
+  movimentoDemo("m2", "p1", 1, horasAtras(30)),
+  movimentoDemo("m3", "p2", 1, horasAtras(30)),
+  movimentoDemo("m4", "p1", 4, horasAtras(24 * 4)),
+  movimentoDemo("m5", "p2", 3, horasAtras(24 * 4)),
+  movimentoDemo("m6", "p4", 1, horasAtras(24 * 4)),
+  movimentoDemo("m7", "p1", 1, horasAtras(24 * 13)),
 ];

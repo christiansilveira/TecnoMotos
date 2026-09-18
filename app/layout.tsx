@@ -63,6 +63,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="pt-BR"
       className={`${manrope.variable} ${rajdhani.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // O script inline (SCRIPT_TEMA, roda antes do React hidratar) já
+      // grava `data-theme` no <html> a partir do localStorage — o HTML
+      // que o servidor mandou nunca tem esse atributo (não tem como
+      // saber o tema salvo no navegador do cliente). Sem isso aqui, todo
+      // carregamento de página nova (não navegação client-side) disparava
+      // um aviso de "hydration mismatch" nesse atributo no console —
+      // inofensivo (o React mantém o valor certo do DOM), mas ruído que
+      // não deveria estar lá. `suppressHydrationWarning` é o jeito
+      // recomendado pelo React pra exatamente esse padrão de "atributo
+      // escrito por um script antes da hidratação".
+      suppressHydrationWarning
     >
       <body className="relative min-h-full font-sans text-zinc-100">
         <Script id="tema-inicial" strategy="beforeInteractive">

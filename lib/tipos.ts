@@ -142,6 +142,17 @@ export interface DadosOSParaPdf {
   aprovado_em?: string | null;
 }
 
+/** Um lançamento de `estoque_movimentos` — usado pelo Dashboard pra
+ * contar quantas peças saíram (tipo "saida_os") num período. */
+export interface MovimentoEstoque {
+  id: string;
+  produto_id: string;
+  tipo: "entrada_nf" | "entrada_manual" | "saida_os" | "saida_venda" | "devolucao" | "ajuste";
+  quantidade: number;
+  criado_em: string;
+  produtos?: Pick<Produto, "nome"> | null;
+}
+
 export interface Produto {
   id: string;
   nome: string;
@@ -169,4 +180,16 @@ export function urgencia(os: Pick<OrdemServico, "status" | "aberta_em">): 0 | 1 
   if (horas > 72) return 3;
   if (horas > 24) return 2;
   return 1;
+}
+
+/** Normaliza uma placa digitada (com ou sem traço, minúscula, com
+ * espaço) pro mesmo formato usado no banco/telas ("ABC-1D23") — usada
+ * na Entrada de Veículo pra reconhecer uma placa já cadastrada não
+ * importa como a pessoa digitou. Cobre só o padrão de 7 caracteres
+ * (antigo ou Mercosul); qualquer coisa fora disso volta em maiúsculo,
+ * sem traço, pra pelo menos comparar de forma consistente. */
+export function normalizarPlaca(valor: string): string {
+  const limpa = valor.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (limpa.length === 7) return `${limpa.slice(0, 3)}-${limpa.slice(3)}`;
+  return limpa;
 }

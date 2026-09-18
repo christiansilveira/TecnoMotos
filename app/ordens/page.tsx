@@ -14,7 +14,12 @@ import { useBikerStore } from "@/store/useBikerStore";
 const SELECAO =
   "id, numero, status, valor_total, aberta_em, finalizada_em, entregue_em, valor_pecas, valor_servicos, valor_desconto, relato_cliente, diagnostico, km_entrada, veiculo_id, cliente_id, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
 
-const STATUS_VALIDOS = new Set<string>(COLUNAS_KANBAN);
+// "Entregue" fica fora do Kanban de propósito (não é mais uma etapa em
+// andamento), mas ainda precisa aparecer como filtro aqui — sem isso a
+// OS some da tela assim que a moto é entregue, sem nenhum jeito de
+// abrir ela de novo a não ser sabendo a URL de cor (Christian: "não
+// consegui acessar as OS de entregues").
+const STATUS_VALIDOS = new Set<string>([...COLUNAS_KANBAN, "entregue"]);
 
 export default function OrdensPage() {
   return (
@@ -32,6 +37,15 @@ function OrdensPageConteudo() {
     statusUrl && STATUS_VALIDOS.has(statusUrl) ? (statusUrl as StatusOS) : "todas"
   );
 
+  // OS entregues ficam de fora da consulta principal (lista pensada pra
+  // "o que está em aberto agora", e a maioria das OS de uma oficina com
+  // tempo de uso vai estar entregue — trazer todas junto deixaria a
+  // lista padrão poluída e lenta). Carregadas à parte, só quando a
+  // pessoa realmente pede pra ver ("Entregue" no filtro ou o link do
+  // Dashboard) — mesmo padrão de carregamento sob demanda já usado no
+  // histórico de placa da Entrada de Veículo.
+  const [entregues, setEntregues] = useState<OrdemServico[] | null>(null);
+
   const carregar = useCallback(async () => {
     if (DEMO || !supabase) {
       setOrdens(ORDENS_DEMO);
@@ -44,6 +58,20 @@ function OrdensPageConteudo() {
       .order("aberta_em", { ascending: false })
       .limit(150);
     setOrdens((data as unknown as OrdemServico[]) ?? []);
+  }, []);
+
+  const carregarEntregues = useCallback(async () => {
+    if (DEMO || !supabase) {
+      setEntregues(ORDENS_DEMO.filter((o) => o.status === "entregue"));
+      return;
+    }
+    const { data } = await supabase
+      .from("ordens_servico")
+      .select(SELECAO)
+      .eq("status", "entregue")
+      .order("entregue_em", { ascending: false })
+      .limit(100);
+    setEntregues((data as unknown as OrdemServico[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -59,18 +87,31 @@ function OrdensPageConteudo() {
     };
   }, [carregar]);
 
+  // Só busca as entregues quando a pessoa realmente escolhe esse filtro
+  // (ou chega direto por link com ?status=entregue) — evita a consulta
+  // extra em toda visita normal à tela.
+  useEffect(() => {
+    if (filtro === "entregue" && entregues === null) carregarEntregues();
+  }, [filtro, entregues, carregarEntregues]);
+
   const visiveis = useMemo(() => {
+    if (filtro === "entregue") return entregues ?? [];
     if (!ordens) return [];
     return filtro === "todas" ? ordens : ordens.filter((o) => o.status === filtro);
-  }, [ordens, filtro]);
+  }, [ordens, entregues, filtro]);
 
   const contar = (status: StatusOS) => (ordens ?? []).filter((o) => o.status === status).length;
+  const carregandoLista = filtro === "entregue" ? entregues === null : ordens === null;
 
   return (
     <div className="flex flex-col gap-6 pt-4">
       <div>
         <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Ordens de Serviço</h1>
-        <p className="mt-1 text-sm text-zinc-400">{ordens?.length ?? "…"} ordens em aberto</p>
+        <p className="mt-1 text-sm text-zinc-400">
+          {filtro === "entregue"
+            ? `${entregues?.length ?? "…"} ordens entregues`
+            : `${ordens?.length ?? "…"} ordens em aberto`}
+        </p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -82,9 +123,12 @@ function OrdensPageConteudo() {
             {STATUS_LABEL[s]} {ordens ? `(${contar(s)})` : ""}
           </BotaoFiltro>
         ))}
+        <BotaoFiltro ativo={filtro === "entregue"} onClick={() => setFiltro("entregue")}>
+          {STATUS_LABEL.entregue} {entregues ? `(${entregues.length})` : ""}
+        </BotaoFiltro>
       </div>
 
-      {!ordens ? (
+      {carregandoLista ? (
         <EsqueletoLista />
       ) : visiveis.length === 0 ? (
         <PainelVidro className="p-8 text-center text-sm text-zinc-400">Nenhuma OS neste filtro.</PainelVidro>

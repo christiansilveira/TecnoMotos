@@ -113,18 +113,35 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   }, []);
 
   const salvarStatus = async () => {
-    if (!statusSelecionado) return;
+    if (!statusSelecionado || !os) return;
     setSalvando(true);
     setErro("");
+
+    // Grava quando a OS entrou em "finalizado"/"entregue" — sem isso, essas
+    // datas nunca eram preenchidas fora dos dados de demonstração, e o
+    // Dashboard (que soma faturamento e conta OS realizadas a partir delas)
+    // ficava sempre zerado. Só grava na primeira vez (não sobrescreve se a
+    // pessoa for e voltar de status).
+    const agora = new Date().toISOString();
+    const camposData: { finalizada_em?: string; entregue_em?: string } = {};
+    if (statusSelecionado === "finalizado" && !os.finalizada_em) camposData.finalizada_em = agora;
+    if (statusSelecionado === "entregue") {
+      if (!os.finalizada_em) camposData.finalizada_em = agora;
+      if (!os.entregue_em) camposData.entregue_em = agora;
+    }
+
     if (DEMO || !supabase) {
       await new Promise((r) => setTimeout(r, 350));
-      setOs((atual) => (atual ? { ...atual, status: statusSelecionado } : atual));
+      setOs((atual) => (atual ? { ...atual, status: statusSelecionado, ...camposData } : atual));
       setSalvando(false);
       setSalvo(true);
       setTimeout(() => setSalvo(false), 2000);
       return;
     }
-    const { error } = await supabase.from("ordens_servico").update({ status: statusSelecionado }).eq("id", id);
+    const { error } = await supabase
+      .from("ordens_servico")
+      .update({ status: statusSelecionado, ...camposData })
+      .eq("id", id);
     setSalvando(false);
     if (error) {
       setErro(error.message);
