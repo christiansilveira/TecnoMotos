@@ -19,6 +19,26 @@ async function logoEmBase64(): Promise<string | null> {
   }
 }
 
+/** Baixa uma foto (URL pública do Supabase Storage) e devolve como data
+ * URL — mesma necessidade do `logoEmBase64` acima (jsPDF só aceita
+ * `addImage` com data URL/HTMLImageElement, não uma URL comum). Melhor
+ * esforço: se uma foto falhar (rede, formato), o PDF sai sem ela em vez
+ * de travar o documento inteiro. */
+async function imagemUrlParaBase64(url: string): Promise<string | null> {
+  try {
+    const resposta = await fetch(url);
+    const blob = await resposta.blob();
+    return await new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(leitor.result as string);
+      leitor.onerror = () => reject(leitor.error);
+      leitor.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Gera o PDF do orçamento de uma OS — com a marca da TECNOMOTOS, os
  * itens lançados e uma área de assinatura, pronto pra imprimir e o
@@ -103,6 +123,33 @@ export async function gerarPdfOrcamento(os: DadosOSParaPdf, itens: ItemOS[], tot
 
   if (os.relato_cliente) blocoTexto("Reclamação relatada", os.relato_cliente);
   if (os.diagnostico) blocoTexto("Diagnóstico", os.diagnostico);
+
+  // Fotos do problema (até 3) — pedido do Christian: mandar o
+  // diagnóstico "por foto se necessário" junto do orçamento pro cliente
+  // aprovar/assinar. Baixadas e desenhadas em miniatura lado a lado;
+  // melhor esforço (uma foto que falhar ao baixar simplesmente não
+  // aparece, sem travar o PDF).
+  if (os.diagnostico_fotos && os.diagnostico_fotos.length > 0) {
+    const fotos = os.diagnostico_fotos.slice(0, 3);
+    const dataUrls = await Promise.all(fotos.map(imagemUrlParaBase64));
+    const validas = dataUrls.filter((d): d is string => !!d);
+    if (validas.length > 0) {
+      const tamanhoFoto = 28;
+      const gap = 4;
+      if (y + tamanhoFoto > 265) {
+        doc.addPage();
+        y = 20;
+      }
+      validas.forEach((dataUrl, i) => {
+        try {
+          doc.addImage(dataUrl, margem + i * (tamanhoFoto + gap), y, tamanhoFoto, tamanhoFoto, undefined, "FAST");
+        } catch {
+          // formato inesperado — pula essa foto, não é crítico.
+        }
+      });
+      y += tamanhoFoto + 6;
+    }
+  }
 
   y += 5;
 

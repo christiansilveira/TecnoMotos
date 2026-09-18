@@ -148,11 +148,24 @@ export default function EntradaPage() {
         return;
       }
 
-      const { data: veiculo } = await supabase
+      // Antes desta correção, o cadastro gravava a placa como
+      // `placa.toUpperCase()` (sem normalizar), então uma moto cadastrada
+      // digitando "BRA2E19" (sem traço) ficava salva assim — e essa
+      // consulta, buscando só o formato normalizado ("BRA-2E19"), nunca
+      // encontrava (Christian: "fiz uma OS com a mesma placa e não puxou
+      // o cadastro/histórico"). `salvar()` abaixo já foi corrigido pra
+      // sempre gravar normalizado dali em diante, mas motos cadastradas
+      // antes dessa correção continuam com o formato antigo — por isso a
+      // busca aqui tenta as duas grafias (com e sem traço) em vez de só a
+      // normalizada.
+      const semTraco = normalizada.replace("-", "");
+      const variantes = semTraco === normalizada ? [normalizada] : [normalizada, semTraco];
+      const { data: veiculos } = await supabase
         .from("veiculos")
         .select("id, marca, modelo, ano, km_atual, fotos_url, cliente_id, clientes(id, nome, telefone)")
-        .eq("placa", normalizada)
-        .maybeSingle();
+        .in("placa", variantes)
+        .limit(1);
+      const veiculo = veiculos?.[0];
       if (!veiculo) return;
 
       const cliente = Array.isArray(veiculo.clientes) ? veiculo.clientes[0] : veiculo.clientes;
@@ -240,7 +253,7 @@ export default function EntradaPage() {
 
         const { data: veiculo, error: eVeiculo } = await supabase
           .from("veiculos")
-          .insert({ placa: placa.toUpperCase(), cliente_id: clienteId, marca, modelo, km_atual: km ? +km : null })
+          .insert({ placa: normalizarPlaca(placa), cliente_id: clienteId, marca, modelo, km_atual: km ? +km : null })
           .select("id")
           .single();
         if (eVeiculo) throw eVeiculo;

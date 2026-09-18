@@ -144,6 +144,22 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
               {os.diagnostico}
             </p>
           )}
+          {os.diagnostico_fotos && os.diagnostico_fotos.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-white/5 pt-3">
+              {os.diagnostico_fotos.map((url, i) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-16 w-16 overflow-hidden rounded-lg border border-white/10"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`Foto ${i + 1} do problema`} className="h-full w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
         </PainelVidro>
       </RevealItem>
 

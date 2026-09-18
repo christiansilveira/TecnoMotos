@@ -7,6 +7,7 @@ import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
 import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
+import CameraCaptura from "@/components/CameraCaptura";
 import AprovacaoOS from "@/components/AprovacaoOS";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -49,6 +50,99 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [erroCancelar, setErroCancelar] = useState("");
+
+  // Diagnóstico (o que foi encontrado no problema) — antes só existia
+  // como campo de exibição (preenchido, na prática, por ninguém: nenhuma
+  // tela deixava escrever nele). Pedido do Christian: um campo aqui pra
+  // registrar o problema encontrado, com foto se precisar, que vai
+  // junto no PDF e na página pública de aprovação/assinatura.
+  const [diagnosticoTexto, setDiagnosticoTexto] = useState("");
+  const [fotosDiagnosticoSalvas, setFotosDiagnosticoSalvas] = useState<string[]>([]);
+  const [fotosDiagnosticoNovas, setFotosDiagnosticoNovas] = useState<{ blob: Blob; url: string }[]>([]);
+  const [abrindoCameraDiagnostico, setAbrindoCameraDiagnostico] = useState(false);
+  const [salvandoDiagnostico, setSalvandoDiagnostico] = useState(false);
+  const [diagnosticoSalvo, setDiagnosticoSalvo] = useState(false);
+  const [erroDiagnostico, setErroDiagnostico] = useState("");
+
+  // Só sincroniza com o que veio do banco quando a OS troca (pelo id) —
+  // não a cada `carregar()` de novo (ex.: depois de lançar um item),
+  // senão um rascunho de diagnóstico ainda não salvo seria perdido.
+  useEffect(() => {
+    if (os) {
+      setDiagnosticoTexto(os.diagnostico ?? "");
+      setFotosDiagnosticoSalvas(os.diagnostico_fotos ?? []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [os?.id]);
+
+  const removerFotoDiagnosticoNova = (indice: number) => {
+    setFotosDiagnosticoNovas((atual) => {
+      const copia = [...atual];
+      const [removida] = copia.splice(indice, 1);
+      if (removida) URL.revokeObjectURL(removida.url);
+      return copia;
+    });
+  };
+
+  const salvarDiagnostico = async () => {
+    if (!os) return;
+    setSalvandoDiagnostico(true);
+    setErroDiagnostico("");
+    try {
+      if (DEMO || !supabase) {
+        await new Promise((r) => setTimeout(r, 300));
+        const fotosFinais = [...fotosDiagnosticoSalvas, ...fotosDiagnosticoNovas.map((f) => f.url)];
+        setFotosDiagnosticoSalvas(fotosFinais);
+        setFotosDiagnosticoNovas([]);
+        setOs((atual) => (atual ? { ...atual, diagnostico: diagnosticoTexto || null, diagnostico_fotos: fotosFinais } : atual));
+        setDiagnosticoSalvo(true);
+        setTimeout(() => setDiagnosticoSalvo(false), 2000);
+        return;
+      }
+
+      // Fotos novas: melhor esforço, mesmo padrão da foto da moto na
+      // Entrada — se o bucket de storage ainda não existir (falta rodar
+      // supabase/2026-09-18-diagnostico-fotos.sql), o texto do
+      // diagnóstico ainda assim é salvo, só sem as fotos anexadas.
+      const urlsNovas: string[] = [];
+      for (let i = 0; i < fotosDiagnosticoNovas.length; i++) {
+        const caminho = `${os.id}/${Date.now()}-${i}.jpg`;
+        const { error: eUpload } = await supabase.storage
+          .from("os-diagnostico-fotos")
+          .upload(caminho, fotosDiagnosticoNovas[i].blob, { contentType: "image/jpeg" });
+        if (!eUpload) {
+          const { data: pub } = supabase.storage.from("os-diagnostico-fotos").getPublicUrl(caminho);
+          if (pub?.publicUrl) urlsNovas.push(pub.publicUrl);
+        }
+      }
+      const fotosFinais = [...fotosDiagnosticoSalvas, ...urlsNovas];
+
+      const { error } = await supabase
+        .from("ordens_servico")
+        .update({ diagnostico: diagnosticoTexto || null, diagnostico_fotos: fotosFinais })
+        .eq("id", os.id);
+      if (error) {
+        // Coluna diagnostico_fotos pode não existir ainda (migração
+        // pendente) — tenta de novo só com o texto, pra não travar o
+        // diagnóstico inteiro por causa disso.
+        const { error: eSoTexto } = await supabase
+          .from("ordens_servico")
+          .update({ diagnostico: diagnosticoTexto || null })
+          .eq("id", os.id);
+        if (eSoTexto) throw eSoTexto;
+      }
+
+      setFotosDiagnosticoSalvas(fotosFinais);
+      setFotosDiagnosticoNovas([]);
+      setOs((atual) => (atual ? { ...atual, diagnostico: diagnosticoTexto || null, diagnostico_fotos: fotosFinais } : atual));
+      setDiagnosticoSalvo(true);
+      setTimeout(() => setDiagnosticoSalvo(false), 2000);
+    } catch (e) {
+      setErroDiagnostico(e instanceof Error ? e.message : "Não foi possível salvar o diagnóstico.");
+    } finally {
+      setSalvandoDiagnostico(false);
+    }
+  };
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [formAberto, setFormAberto] = useState(false);
@@ -284,6 +378,19 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
     );
   }
 
+  if (abrindoCameraDiagnostico) {
+    return (
+      <CameraCaptura
+        titulo="Fotografe o problema"
+        multiplo
+        contagemAtual={fotosDiagnosticoNovas.length}
+        onFoto={(blob) => setFotosDiagnosticoNovas((atual) => [...atual, { blob, url: URL.createObjectURL(blob) }])}
+        onCancelar={() => setAbrindoCameraDiagnostico(false)}
+        onConcluir={() => setAbrindoCameraDiagnostico(false)}
+      />
+    );
+  }
+
   if (!os) {
     return (
       <PainelVidro className="mt-4 p-8 text-center">
@@ -335,12 +442,6 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
               {os.relato_cliente}
             </p>
           )}
-          {os.diagnostico && (
-            <p className="mt-2 text-sm text-zinc-300">
-              <span className="text-zinc-500">Diagnóstico: </span>
-              {os.diagnostico}
-            </p>
-          )}
           {os.veiculos?.fotos_url && os.veiculos.fotos_url.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2 border-t border-white/5 pt-3">
               {os.veiculos.fotos_url.map((url, i) => (
@@ -357,6 +458,74 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
               ))}
             </div>
           )}
+        </PainelVidro>
+      </RevealItem>
+
+      <RevealItem>
+        <PainelVidro className="p-5">
+          <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Diagnóstico</h2>
+          <p className="mt-1 text-xs text-zinc-500">O que foi encontrado — vai junto no PDF e na página que o cliente assina.</p>
+
+          <textarea
+            value={diagnosticoTexto}
+            onChange={(e) => setDiagnosticoTexto(e.target.value)}
+            rows={3}
+            placeholder="Ex.: Pastilha dianteira no limite, disco com sulco leve."
+            className="mt-3 w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-zinc-100 outline-none focus:border-zinc-400"
+          />
+
+          {(fotosDiagnosticoSalvas.length > 0 || fotosDiagnosticoNovas.length > 0) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {fotosDiagnosticoSalvas.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-16 w-16 overflow-hidden rounded-lg border border-white/10"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="Foto do problema" className="h-full w-full object-cover" />
+                </a>
+              ))}
+              {fotosDiagnosticoNovas.map((f, i) => (
+                <div key={f.url} className="relative h-16 w-16 overflow-hidden rounded-lg border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url} alt={`Foto nova ${i + 1} do problema`} className="h-full w-full object-cover" />
+                  <button
+                    onClick={() => removerFotoDiagnosticoNova(i)}
+                    aria-label="Remover foto"
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] text-zinc-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={() => setAbrindoCameraDiagnostico(true)}
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            Fotografar o problema
+          </button>
+
+          {erroDiagnostico && <p className="mt-2 text-sm text-red-400">{erroDiagnostico}</p>}
+
+          <div className="mt-4 flex items-center gap-3">
+            <TrailPlateButton
+              tamanho="sm"
+              onClick={salvarDiagnostico}
+              disabled={
+                salvandoDiagnostico ||
+                (diagnosticoTexto === (os.diagnostico ?? "") && fotosDiagnosticoNovas.length === 0)
+              }
+            >
+              {salvandoDiagnostico ? "Salvando…" : "Salvar diagnóstico"}
+            </TrailPlateButton>
+            {diagnosticoSalvo && <span className="text-sm text-emerald-400">Diagnóstico salvo.</span>}
+          </div>
         </PainelVidro>
       </RevealItem>
 

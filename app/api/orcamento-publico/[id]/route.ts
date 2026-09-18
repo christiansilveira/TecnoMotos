@@ -26,6 +26,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         km_entrada: os.km_entrada,
         relato_cliente: os.relato_cliente,
         diagnostico: os.diagnostico,
+        diagnostico_fotos: os.diagnostico_fotos ?? null,
         veiculos: os.veiculos,
         clientes: os.clientes,
         aprovado_por: os.aprovado_por ?? null,
@@ -47,21 +48,29 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     "numero, status, km_entrada, relato_cliente, diagnostico, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
 
   // `aprovado_por`/`aprovado_cpf`/`aprovado_em` só existem depois da
-  // migração opcional (supabase/2026-09-17-aprovacao-publica.sql) — se
-  // a coluna não existir ainda, a consulta com elas falha por inteiro
-  // (undefined column), então tenta de novo sem elas em vez de quebrar
-  // a página pública inteira por causa de uma migração pendente.
-  const comAprovacao = await admin
-    .from("ordens_servico")
-    .select(`${CAMPOS_BASE}, aprovado_por, aprovado_cpf, aprovado_em`)
-    .eq("id", id)
-    .single();
-  let os: Record<string, unknown> | null = comAprovacao.data;
-  let erroOS = comAprovacao.error;
-  if (erroOS) {
-    const semAprovacao = await admin.from("ordens_servico").select(CAMPOS_BASE).eq("id", id).single();
-    os = semAprovacao.data;
-    erroOS = semAprovacao.error;
+  // migração opcional (supabase/2026-09-17-aprovacao-publica.sql) e
+  // `diagnostico_fotos` só depois de outra (2026-09-18-diagnostico-
+  // fotos.sql) — são independentes uma da outra, e pedir uma coluna que
+  // não existe faz a consulta inteira falhar (undefined column). Em vez
+  // de travar a página pública por causa de uma migração pendente,
+  // tenta indo das 4 combinações possíveis (as duas, só uma, ou
+  // nenhuma) até uma funcionar.
+  const combinacoes = [
+    `${CAMPOS_BASE}, diagnostico_fotos, aprovado_por, aprovado_cpf, aprovado_em`,
+    `${CAMPOS_BASE}, aprovado_por, aprovado_cpf, aprovado_em`,
+    `${CAMPOS_BASE}, diagnostico_fotos`,
+    CAMPOS_BASE,
+  ];
+  let os: Record<string, unknown> | null = null;
+  let erroOS: { message: string } | null = null;
+  for (const campos of combinacoes) {
+    const resultado = await admin.from("ordens_servico").select(campos).eq("id", id).single();
+    if (!resultado.error) {
+      os = resultado.data as unknown as Record<string, unknown>;
+      erroOS = null;
+      break;
+    }
+    erroOS = resultado.error;
   }
   if (erroOS || !os) {
     return NextResponse.json({ erro: "Ordem de serviço não encontrada." }, { status: 404 });

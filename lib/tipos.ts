@@ -92,6 +92,12 @@ export interface OrdemServico {
   km_entrada: number | null;
   relato_cliente: string | null;
   diagnostico: string | null;
+  /** Fotos do problema encontrado, anexadas ao gravar o diagnóstico
+   * (`app/ordens/[id]/page.tsx`) — pedido do Christian: poder registrar
+   * o que foi o problema "por foto se necessário" pra mandar junto do
+   * diagnóstico pro cliente aprovar/assinar. Opcional porque só existe
+   * depois de rodar `supabase/2026-09-18-diagnostico-fotos.sql`. */
+  diagnostico_fotos?: string[] | null;
   valor_pecas: number;
   valor_servicos: number;
   valor_desconto: number;
@@ -132,6 +138,7 @@ export interface DadosOSParaPdf {
   km_entrada: number | null;
   relato_cliente: string | null;
   diagnostico: string | null;
+  diagnostico_fotos?: string[] | null;
   veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano"> | null;
   clientes?: Pick<Cliente, "nome" | "telefone"> | null;
   /** Presentes quando a OS já foi aprovada/assinada pelo cliente na
