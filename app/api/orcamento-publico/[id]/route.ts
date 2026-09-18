@@ -28,6 +28,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         diagnostico: os.diagnostico,
         veiculos: os.veiculos,
         clientes: os.clientes,
+        aprovado_por: os.aprovado_por ?? null,
+        aprovado_cpf: os.aprovado_cpf ?? null,
+        aprovado_em: os.aprovado_em ?? null,
       },
       itens,
     });
@@ -40,13 +43,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
   const admin = createClient(url, chaveSecreta, { auth: { autoRefreshToken: false, persistSession: false } });
 
-  const { data: os, error: erroOS } = await admin
+  const CAMPOS_BASE =
+    "numero, status, km_entrada, relato_cliente, diagnostico, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
+
+  // `aprovado_por`/`aprovado_cpf`/`aprovado_em` só existem depois da
+  // migração opcional (supabase/2026-09-17-aprovacao-publica.sql) — se
+  // a coluna não existir ainda, a consulta com elas falha por inteiro
+  // (undefined column), então tenta de novo sem elas em vez de quebrar
+  // a página pública inteira por causa de uma migração pendente.
+  const comAprovacao = await admin
     .from("ordens_servico")
-    .select(
-      "numero, status, km_entrada, relato_cliente, diagnostico, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)",
-    )
+    .select(`${CAMPOS_BASE}, aprovado_por, aprovado_cpf, aprovado_em`)
     .eq("id", id)
     .single();
+  let os: Record<string, unknown> | null = comAprovacao.data;
+  let erroOS = comAprovacao.error;
+  if (erroOS) {
+    const semAprovacao = await admin.from("ordens_servico").select(CAMPOS_BASE).eq("id", id).single();
+    os = semAprovacao.data;
+    erroOS = semAprovacao.error;
+  }
   if (erroOS || !os) {
     return NextResponse.json({ erro: "Ordem de serviço não encontrada." }, { status: 404 });
   }

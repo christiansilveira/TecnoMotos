@@ -160,24 +160,67 @@ export async function gerarPdfOrcamento(os: DadosOSParaPdf, itens: ItemOS[], tot
     y = 20;
   }
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(90, 90, 90);
-  doc.text(
-    "Declaro estar de acordo com os serviços e valores descritos acima e autorizo a execução.",
-    margem,
-    y,
-    { maxWidth: largura - margem * 2 },
-  );
+  if (os.aprovado_por) {
+    // OS já aprovada pelo cliente na página pública (app/aprovar/[id])
+    // — sai com a assinatura já preenchida em vez da linha em branco
+    // pra assinar na mão, pedido do Christian: "depois de aprovado, e
+    // assinado com o nome e cpf, pode colocar na OS para quando baixar
+    // já vir com a assinatura".
+    const alturaCaixa = os.aprovado_cpf ? 22 : 17;
+    doc.setFillColor(230, 250, 238);
+    doc.rect(margem, y, largura - margem * 2, alturaCaixa, "F");
+    doc.setDrawColor(0, 150, 90);
+    doc.setLineWidth(0.6);
+    doc.rect(margem, y, largura - margem * 2, alturaCaixa, "S");
+    doc.setLineWidth(0.2);
 
-  y += 22;
-  doc.setDrawColor(30, 30, 30);
-  doc.line(margem, y, margem + 80, y);
-  doc.line(largura - margem - 55, y, largura - margem, y);
-  doc.setFontSize(8.5);
-  doc.setTextColor(110, 110, 110);
-  doc.text("Assinatura do cliente", margem, y + 5);
-  doc.text("Data", largura - margem - 55, y + 5);
+    // Nada de caractere Unicode (✓) aqui — a fonte padrão do jsPDF
+    // (helvetica) não tem esse glifo e ele saía como um sinal errado no
+    // PDF gerado; o check é desenhado à mão com duas linhas, alinhado
+    // com a linha de base do texto ao lado (y + 6).
+    doc.setDrawColor(0, 140, 80);
+    doc.setLineWidth(0.8);
+    doc.line(margem + 3.2, y + 4.3, margem + 4.6, y + 6.1);
+    doc.line(margem + 4.6, y + 6.1, margem + 7.5, y + 2.2);
+    doc.setLineWidth(0.2);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(0, 120, 70);
+    doc.text("APROVADO E ASSINADO DIGITALMENTE", margem + 11, y + 6);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(40, 60, 50);
+    doc.text(`Assinado por: ${os.aprovado_por}`, margem + 4, y + 12);
+    let linhaAssinatura = y + 12;
+    if (os.aprovado_cpf) {
+      linhaAssinatura += 5;
+      doc.text(`CPF: ${os.aprovado_cpf}`, margem + 4, linhaAssinatura);
+    }
+    if (os.aprovado_em) {
+      const dataAprovacao = new Date(os.aprovado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+      doc.text(`Em: ${dataAprovacao}`, largura - margem - 4, linhaAssinatura, { align: "right" });
+    }
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(
+      "Declaro estar de acordo com os serviços e valores descritos acima e autorizo a execução.",
+      margem,
+      y,
+      { maxWidth: largura - margem * 2 },
+    );
+    y += 22;
+    doc.setDrawColor(30, 30, 30);
+    doc.line(margem, y, margem + 80, y);
+    doc.line(largura - margem - 55, y, largura - margem, y);
+    doc.setFontSize(8.5);
+    doc.setTextColor(110, 110, 110);
+    doc.text("Assinatura do cliente", margem, y + 5);
+    doc.text("Data", largura - margem - 55, y + 5);
+  }
 
   doc.setFontSize(8);
   doc.setTextColor(160, 160, 160);

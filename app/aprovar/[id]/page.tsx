@@ -7,6 +7,7 @@ import TrailPlateButton from "@/components/TrailPlateButton";
 import Campo from "@/components/ui/Campo";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { gerarPdfOrcamento } from "@/lib/gerarPdfOrcamento";
+import { cpfValido, formatarCpf } from "@/lib/cpf";
 import { brl, type DadosOSParaPdf, type ItemOS, type StatusOS } from "@/lib/tipos";
 
 type OSPublica = DadosOSParaPdf & { status: StatusOS };
@@ -28,6 +29,7 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
   const [os, setOs] = useState<OSPublica | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
   const [aprovando, setAprovando] = useState(false);
   const [erroAprovar, setErroAprovar] = useState("");
   const [aprovado, setAprovado] = useState(false);
@@ -73,7 +75,7 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
       const resposta = await fetch(`/api/orcamento-publico/${id}/aprovar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim() }),
+        body: JSON.stringify({ nome: nome.trim(), cpf }),
       });
       const corpo = await resposta.json();
       if (!resposta.ok) {
@@ -81,6 +83,14 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
         return;
       }
       setAprovado(true);
+      // Atualiza os dados locais com a assinatura — assim, se o cliente
+      // clicar em "Baixar PDF" logo em seguida (sem recarregar a
+      // página), o PDF já sai com a aprovação preenchida.
+      setOs((atual) =>
+        atual
+          ? { ...atual, status: "aprovado", aprovado_por: nome.trim(), aprovado_cpf: formatarCpf(cpf), aprovado_em: new Date().toISOString() }
+          : atual,
+      );
     } catch {
       setErroAprovar("Não foi possível falar com o servidor agora.");
     } finally {
@@ -183,19 +193,30 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
             <>
               <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Aprovar orçamento</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                Digite seu nome completo e confirme abaixo — isso vale como sua aprovação dos serviços e valores acima.
+                Digite seu nome completo e CPF e confirme abaixo — isso vale como sua assinatura, aprovando os serviços e
+                valores acima.
               </p>
-              <div className="mt-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Campo label="Nome completo" value={nome} onChange={setNome} placeholder="Seu nome" />
+                <Campo
+                  label="CPF"
+                  value={cpf}
+                  onChange={(v) => setCpf(formatarCpf(v))}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                />
               </div>
+              {cpf.length >= 14 && !cpfValido(cpf) && (
+                <p className="mt-2 text-xs text-red-400">CPF inválido — confira os números digitados.</p>
+              )}
               {erroAprovar && (
                 <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
                   {erroAprovar}
                 </p>
               )}
               <div className="mt-4">
-                <TrailPlateButton onClick={aprovar} disabled={aprovando || !nome.trim()} className="w-full">
-                  {aprovando ? "Aprovando…" : "Aprovo os serviços e valores acima"}
+                <TrailPlateButton onClick={aprovar} disabled={aprovando || !nome.trim() || !cpfValido(cpf)} className="w-full">
+                  {aprovando ? "Aprovando…" : "Aprovo e assino os serviços e valores acima"}
                 </TrailPlateButton>
               </div>
             </>

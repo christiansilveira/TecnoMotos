@@ -103,6 +103,13 @@ export interface OrdemServico {
   cliente_id: string | null;
   veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano" | "fotos_url"> | null;
   clientes?: Pick<Cliente, "nome" | "telefone"> | null;
+  /** Preenchidos quando o cliente aprova pela página pública
+   * (app/aprovar/[id]) — opcionais porque só existem depois de rodar
+   * `supabase/2026-09-17-aprovacao-publica.sql`, e uma OS ainda não
+   * aprovada não tem nada aqui. */
+  aprovado_por?: string | null;
+  aprovado_cpf?: string | null;
+  aprovado_em?: string | null;
 }
 
 export interface ItemOS {
@@ -127,6 +134,12 @@ export interface DadosOSParaPdf {
   diagnostico: string | null;
   veiculos?: Pick<Veiculo, "placa" | "marca" | "modelo" | "ano"> | null;
   clientes?: Pick<Cliente, "nome" | "telefone"> | null;
+  /** Presentes quando a OS já foi aprovada/assinada pelo cliente na
+   * página pública — o PDF usa isso pra imprimir a assinatura já
+   * preenchida em vez da linha em branco. */
+  aprovado_por?: string | null;
+  aprovado_cpf?: string | null;
+  aprovado_em?: string | null;
 }
 
 export interface Produto {

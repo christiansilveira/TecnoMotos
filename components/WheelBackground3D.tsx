@@ -19,8 +19,8 @@ const CAMINHO_MODELO = "/models/wheel.glb";
 // pela borda da tela", não como um elemento que precisa caber inteiro
 // sem cortar nada). Num painel mais largo (desktop), a roda já ocupa
 // boa parte da largura sem precisar desse zoom.
-const ALVO_MOBILE = { aspecto: 0.28, largura: 1.85 };
-const ALVO_DESKTOP = { aspecto: 0.8, largura: 3.0 };
+const ALVO_MOBILE = { aspecto: 0.28, largura: 0.72 };
+const ALVO_DESKTOP = { aspecto: 0.8, largura: 1.9 };
 
 function larguraVisivelAlvo(aspecto: number): number {
   const t = (aspecto - ALVO_MOBILE.aspecto) / (ALVO_DESKTOP.aspecto - ALVO_MOBILE.aspecto);
