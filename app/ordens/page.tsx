@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Vazio from "@/components/ui/Vazio";
+import { IcoOrdens } from "@/components/icones";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import PainelVidro from "@/components/ui/PainelVidro";
@@ -104,9 +106,9 @@ function OrdensPageConteudo() {
   const carregandoLista = filtro === "entregue" ? entregues === null : ordens === null;
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Ordens de Serviço</h1>
+        <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Ordens de Serviço</h1>
         <p className="mt-1 text-sm text-zinc-400">
           {filtro === "entregue"
             ? `${entregues?.length ?? "…"} ordens entregues`
@@ -131,7 +133,7 @@ function OrdensPageConteudo() {
       {carregandoLista ? (
         <EsqueletoLista />
       ) : visiveis.length === 0 ? (
-        <PainelVidro className="p-8 text-center text-sm text-zinc-400">Nenhuma OS neste filtro.</PainelVidro>
+        <PainelVidro><Vazio icone={<IcoOrdens size={30} />} titulo="Nenhuma OS aqui" texto="Quando uma moto chegar neste estágio, ela aparece nesta lista." acao={<Link href="/entrada" className="trail-plate px-5 py-2.5 text-xs font-bold uppercase">Nova entrada</Link>} /></PainelVidro>
       ) : (
         <RevealGroup className="grid gap-3">
           {visiveis.map((os) => (

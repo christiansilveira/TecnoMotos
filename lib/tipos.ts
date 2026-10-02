@@ -135,6 +135,8 @@ export interface ItemOS {
  * precisa fingir ser uma `OrdemServico` completa só pra gerar o PDF. */
 export interface DadosOSParaPdf {
   numero: number;
+  /** Desconto dado na OS (R$) — opcional pra não quebrar consultas antigas. */
+  valor_desconto?: number | null;
   km_entrada: number | null;
   relato_cliente: string | null;
   diagnostico: string | null;

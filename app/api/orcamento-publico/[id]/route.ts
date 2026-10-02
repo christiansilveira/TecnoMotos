@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const admin = createClient(url, chaveSecreta, { auth: { autoRefreshToken: false, persistSession: false } });
 
   const CAMPOS_BASE =
-    "numero, status, km_entrada, relato_cliente, diagnostico, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
+    "numero, status, valor_desconto, km_entrada, relato_cliente, diagnostico, veiculos(placa, marca, modelo, ano), clientes(nome, telefone)";
 
   // `aprovado_por`/`aprovado_cpf`/`aprovado_em` só existem depois da
   // migração opcional (supabase/2026-09-17-aprovacao-publica.sql) e

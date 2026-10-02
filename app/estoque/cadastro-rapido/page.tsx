@@ -128,9 +128,9 @@ export default function CadastroRapidoPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Cadastro Rápido</h1>
+        <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Cadastro Rápido</h1>
         <p className="mt-1 text-sm text-zinc-400">Nome, preço, quantidade — o essencial pra peça já sair no estoque.</p>
       </div>
 

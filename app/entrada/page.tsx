@@ -321,9 +321,9 @@ export default function EntradaPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Entrada de Veículo</h1>
+        <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Entrada de Veículo</h1>
         <p className="mt-1 text-sm text-zinc-400">Placa, dados do cliente e fotos da moto pro arquivo do veículo.</p>
       </div>
 

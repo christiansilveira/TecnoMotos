@@ -134,11 +134,11 @@ function ConteudoDashboard() {
   const maiorPeca = Math.max(1, ...pecasRanking.map((p) => p.quantidade));
 
   return (
-    <RevealGroup className="flex flex-col gap-6 pt-4">
-      <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Dashboard</h1>
+    <RevealGroup className="flex flex-col gap-6">
+      <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Dashboard</h1>
 
       <PainelVidro className="p-5">
-        <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Na oficina agora</h2>
+        <h2 className="font-display text-[13px] uppercase text-zinc-200">Na oficina agora</h2>
         <p className="mt-1 text-xs text-zinc-500">
           {abertas.length} {abertas.length === 1 ? "ordem aberta" : "ordens abertas"}
         </p>
@@ -201,7 +201,7 @@ function ConteudoDashboard() {
       {pecasRanking.length > 0 && (
         <RevealItem>
           <PainelVidro className="p-5" corStatus="255 199 0">
-            <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Peças mais usadas</h2>
+            <h2 className="font-display text-[13px] uppercase text-zinc-200">Peças mais usadas</h2>
             <p className="mt-1 text-xs text-zinc-500">No período selecionado, por quantidade saída em OS.</p>
             <div className="mt-4 flex flex-col gap-3">
               {pecasRanking.map((p) => (

@@ -2,6 +2,9 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Vazio from "@/components/ui/Vazio";
+import { lerValor } from "@/lib/dinheiro";
+import { IcoOrdens } from "@/components/icones";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
 import BadgeStatus from "@/components/ui/BadgeStatus";
@@ -153,6 +156,10 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
   const [valorNovo, setValorNovo] = useState("");
   const [adicionando, setAdicionando] = useState(false);
   const [erroItem, setErroItem] = useState("");
+  // Desconto da OS: aceita "R$ 20", "20,00" ou "10%"; pode ser ajustado
+  // mesmo depois de finalizada (cliente pediu desconto na entrega etc.)
+  const [descontoTxt, setDescontoTxt] = useState<string | null>(null);
+  const [salvandoDesconto, setSalvandoDesconto] = useState(false);
 
   const carregar = useCallback(async () => {
     if (DEMO || !supabase) {
@@ -288,7 +295,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
 
   const adicionarItem = async () => {
     const quantidade = Number(quantidadeNovo.replace(",", "."));
-    const valor_unit = Number(valorNovo.replace(",", "."));
+    const valor_unit = lerValor(valorNovo);
     if (!descricaoNovo.trim()) {
       setErroItem("Descreva a peça ou o serviço.");
       return;
@@ -355,6 +362,24 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
     carregar();
   };
 
+  const aplicarDesconto = async (subtotal: number) => {
+    if (!os || descontoTxt === null) return;
+    const valor_desconto = Math.min(subtotal, Math.round(lerValor(descontoTxt, subtotal) * 100) / 100);
+    const novos = { valor_desconto, ...somarItens(itens, valor_desconto) };
+    setSalvandoDesconto(true);
+    if (!DEMO && supabase) {
+      const { error } = await supabase.from("ordens_servico").update(novos).eq("id", id);
+      if (error) {
+        setSalvandoDesconto(false);
+        setErroItem(`Não foi possível salvar o desconto: ${error.message}`);
+        return;
+      }
+    }
+    setOs((atual) => (atual ? { ...atual, ...novos } : atual));
+    setDescontoTxt(null);
+    setSalvandoDesconto(false);
+  };
+
   const removerItem = async (itemId: string) => {
     const restantes = itens.filter((i) => i.id !== itemId);
     if (DEMO || !supabase) {
@@ -406,7 +431,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
             </p>
           </>
         ) : (
-          <p className="text-sm text-zinc-400">Ordem de serviço não encontrada.</p>
+          <Vazio icone={<IcoOrdens size={30} />} titulo="OS não encontrada" texto="Ela pode ter sido apagada ou o link está errado." />
         )}
         <Link href="/ordens" className="mt-3 inline-block text-sm text-zinc-200 underline">
           Voltar para o quadro
@@ -415,11 +440,14 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
     );
   }
 
-  const total = itens.reduce((soma, i) => soma + i.quantidade * i.valor_unit, 0) || os.valor_total;
+  const subtotal = itens.reduce((soma, i) => soma + i.quantidade * i.valor_unit, 0);
+  const desconto = Math.min(subtotal, Number(os.valor_desconto || 0));
+  const total = itens.length ? Math.max(0, subtotal - desconto) : os.valor_total;
+  const previaDesconto = descontoTxt !== null ? Math.min(subtotal, lerValor(descontoTxt, subtotal)) : 0;
   const statusMudou = statusSelecionado !== null && statusSelecionado !== os.status;
 
   return (
-    <RevealGroup className="flex flex-col gap-6 pt-4">
+    <RevealGroup className="flex flex-col gap-6">
       <Link href="/ordens" className="w-fit text-xs uppercase tracking-wide text-zinc-500 hover:text-zinc-300">
         ← Voltar para Ordens
       </Link>
@@ -463,7 +491,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
 
       <RevealItem>
         <PainelVidro className="p-5">
-          <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Diagnóstico</h2>
+          <h2 className="font-display text-[13px] uppercase text-zinc-200">Diagnóstico</h2>
           <p className="mt-1 text-xs text-zinc-500">O que foi encontrado — vai junto no PDF e na página que o cliente assina.</p>
 
           <textarea
@@ -532,7 +560,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
       <RevealItem>
         <PainelVidro className="p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Itens e serviços</h2>
+            <h2 className="font-display text-[13px] uppercase text-zinc-200">Itens e serviços</h2>
             {!formAberto && (
               <TrailPlateButton tamanho="sm" onClick={() => setFormAberto(true)}>
                 + Adicionar
@@ -541,7 +569,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
           </div>
 
           <div className="mt-3 divide-y divide-white/5">
-            {itens.length === 0 && <p className="py-3 text-sm text-zinc-500">Nenhum item lançado.</p>}
+            {itens.length === 0 && <Vazio titulo="Sem itens ainda" texto="Lance os serviços e peças para montar o orçamento." />}
             {itens.map((i) => (
               <div key={i.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <div className="min-w-0 flex-1">
@@ -630,9 +658,45 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
             </div>
           )}
 
-          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-            <span className="font-display text-sm uppercase text-zinc-200">Total</span>
-            <span className="font-mono text-lg font-bold text-zinc-50">{brl(total)}</span>
+          <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between text-sm text-zinc-400">
+              <span>Subtotal</span>
+              <span className="font-mono">{brl(subtotal)}</span>
+            </div>
+            {descontoTxt === null ? (
+              <div className="flex items-center justify-between text-sm">
+                <button type="button" onClick={() => setDescontoTxt(desconto ? String(desconto).replace(".", ",") : "")} className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-100">
+                  {desconto ? "Desconto · ajustar" : "+ Dar desconto"}
+                </button>
+                {desconto > 0 && <span className="font-mono text-emerald-400">− {brl(desconto)}</span>}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    value={descontoTxt}
+                    onChange={(e) => setDescontoTxt(e.target.value)}
+                    placeholder="R$ 20 ou 10%"
+                    aria-label="Desconto em reais ou porcentagem"
+                    className="campo-instrumento min-w-0 flex-1 px-3 py-2.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+                  />
+                  <TrailPlateButton tamanho="sm" type="button" disabled={salvandoDesconto} onClick={() => aplicarDesconto(subtotal)}>
+                    {salvandoDesconto ? "…" : "Aplicar"}
+                  </TrailPlateButton>
+                  <button type="button" aria-label="Cancelar desconto" onClick={() => setDescontoTxt(null)} className="btn-sec px-3 text-xs font-bold uppercase">✕</button>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  {previaDesconto > 0
+                    ? `Desconto de ${brl(previaDesconto)}${descontoTxt.includes("%") ? ` (${descontoTxt.replace(/[^\d,.]/g, "")}%)` : ""} → total ${brl(Math.max(0, subtotal - previaDesconto))}`
+                    : "Digite um valor (R$ 20) ou uma porcentagem (10%). Vazio tira o desconto."}
+                </p>
+              </div>
+            )}
+            <div className="flex items-center justify-between border-t border-white/10 pt-3">
+              <span className="font-display text-[13px] uppercase text-zinc-200">Total</span>
+              <span className="font-mono text-xl font-bold text-zinc-50">{brl(total)}</span>
+            </div>
           </div>
 
           <AprovacaoOS
@@ -649,7 +713,7 @@ export default function PaginaOS({ params }: PageProps<"/ordens/[id]">) {
 
       <RevealItem>
         <PainelVidro className="p-5">
-          <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Situação</h2>
+          <h2 className="font-display text-[13px] uppercase text-zinc-200">Situação</h2>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {TODOS_STATUS.map((s) => (
               <button

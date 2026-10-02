@@ -1,77 +1,63 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { useBikerStore } from "@/store/useBikerStore";
+import TemaToggle from "./TemaToggle";
+import { IcoVoltar, NAV, rotaAtiva } from "./icones";
 
 /**
- * Cabeçalho do app — logo emoldurada como placa aparafusada + nome.
- * Fica maior e ganha um holofote extra atrás quando o AuthGate está
- * mostrando a tela de entrar/criar conta (telaLogin na useBikerStore):
- * é o "cartão de visita" da oficina antes de qualquer coisa, então
- * merece mais presença do que o cabeçalho discreto do resto do app.
- *
- * Antes havia uma caveira 3D (WebGL) girando aqui — trocada pela placa
- * estática (.placa-marca): um mascote 3D girando lê como "projeto de
- * hobby", uma placa de alumínio aparafusada lê como equipamento de
- * oficina de verdade.
+ * Barra superior fixa e compacta (design Obsidiana): voltar + marca à
+ * esquerda, navegação no meio (computador) e tema à direita. Na tela
+ * de login a marca vira o centro da página, grande, com halo.
  */
 export default function AppHeader() {
   const telaLogin = useBikerStore((s) => s.telaLogin);
+  const pathname = usePathname();
+  const publica = pathname?.startsWith("/aprovar/");
 
+  if (telaLogin) {
+    return (
+      <header className="relative flex flex-col items-center gap-4 pb-4 pt-12">
+        <div className="absolute right-4 top-4"><TemaToggle /></div>
+        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-4 -z-10 h-72 w-72 -translate-x-1/2 rounded-full" style={{ background: "radial-gradient(circle, rgb(var(--cor-acento-rgb) / .22), transparent 68%)", filter: "blur(10px)" }} />
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="placa-marca h-28 w-28 overflow-hidden rounded-[28px]">
+          <Image src="/logo-tecnomotos.jpg" alt="TECNOMOTOS" width={112} height={112} className="h-full w-full object-cover" priority />
+        </motion.div>
+        <h1 className="font-display text-3xl uppercase text-zinc-50">Tecnomotos</h1>
+      </header>
+    );
+  }
+
+  const mostrarVoltar = pathname !== "/" && !publica;
   return (
-    <header
-      className={`relative flex flex-col items-center gap-2 transition-[padding] duration-300 ${
-        telaLogin ? "pb-3 pt-8" : "gap-3 pb-6 pt-10"
-      }`}
-    >
-      {/* Halo atrás da logo em toda tela, não só no login — a referência
-          que o Christian trouxe (weevolveit.com) ancora a página inteira
-          numa esfera de luz enorme atrás do título; aqui é mais discreto
-          fora do login, mas nunca some de vez, pra logo nunca ficar
-          "flutuando" sobre o fundo sem nenhum apoio de luz. */}
-      <motion.div
-        aria-hidden="true"
-        animate={{
-          width: telaLogin ? 288 : 180,
-          height: telaLogin ? 288 : 180,
-          opacity: telaLogin ? 1 : 0.6,
-        }}
-        transition={{ type: "spring", stiffness: 200, damping: 28 }}
-        className="pointer-events-none absolute left-1/2 top-2 -z-10 -translate-x-1/2 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgb(var(--cor-acento-rgb) / .20) 0%, rgb(var(--cor-acento-rgb) / .07) 42%, transparent 72%)",
-          filter: "blur(6px)",
-        }}
-      />
-
-      <motion.div
-        animate={{ width: telaLogin ? 128 : 84, height: telaLogin ? 128 : 84 }}
-        transition={{ type: "spring", stiffness: 260, damping: 26 }}
-        className="placa-marca rounded-2xl p-2"
-      >
-        <span aria-hidden="true" className="placa-marca-rebite left-1.5 top-1.5" />
-        <span aria-hidden="true" className="placa-marca-rebite right-1.5 top-1.5" />
-        <span aria-hidden="true" className="placa-marca-rebite bottom-1.5 left-1.5" />
-        <span aria-hidden="true" className="placa-marca-rebite bottom-1.5 right-1.5" />
-        <Image
-          src="/logo-tecnomotos.jpg"
-          alt="TECNOMOTOS"
-          width={112}
-          height={112}
-          className="h-full w-full rounded-lg object-cover"
-          priority
-        />
-      </motion.div>
-
-      <motion.h1
-        animate={{ fontSize: telaLogin ? "2.25rem" : "1.875rem" }}
-        transition={{ type: "spring", stiffness: 260, damping: 26 }}
-        className="font-display uppercase tracking-widest text-zinc-50"
-      >
-        TECNOMOTOS
-      </motion.h1>
+    <header className="barra-topo sticky top-0 z-40 mb-6">
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
+        {mostrarVoltar && (
+          <Link href="/" aria-label="Voltar para o início" className="icone-btn sm:hidden"><IcoVoltar size={18} /></Link>
+        )}
+        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+          <span className="placa-marca h-9 w-9 shrink-0 overflow-hidden rounded-[11px]">
+            <Image src="/logo-tecnomotos.jpg" alt="" width={36} height={36} className="h-full w-full object-cover" priority />
+          </span>
+          <span className="font-display truncate text-[15px] uppercase text-zinc-50">Tecnomotos</span>
+        </Link>
+        {!publica && (
+          <nav className="ml-6 hidden items-center gap-1 sm:flex" aria-label="Navegação principal">
+            {NAV.map(({ href, rotulo }) => {
+              const ativo = rotaAtiva(pathname, href);
+              return (
+                <Link key={href} href={href} className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${ativo ? "bg-white/10 text-zinc-50" : "text-zinc-400 hover:text-zinc-100"}`}>
+                  {rotulo}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+        <div className="ml-auto"><TemaToggle /></div>
+      </div>
     </header>
   );
 }

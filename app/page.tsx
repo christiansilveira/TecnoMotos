@@ -1,40 +1,50 @@
 import Link from "next/link";
-import TrailPlateCard from "@/components/TrailPlateCard";
 import TrilhaDaMoto from "@/components/TrilhaDaMoto";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
+import Saudacao from "@/components/Saudacao";
+import { IcoEntrada, IcoEstoque, IcoOrdens, IcoPainel, IcoSeta } from "@/components/icones";
 
 const PAINEIS = [
-  { titulo: "Entrada de Veículos", descricao: "Receber uma moto e abrir ordem de serviço.", href: "/entrada", numero: "01" },
-  { titulo: "Ordens de Serviço", descricao: "Acompanhar o que está em diagnóstico, execução e pronto.", href: "/ordens", numero: "02" },
-  { titulo: "Dashboard", descricao: "Faturamento, OS abertas e giro de peças.", href: "/dashboard", numero: "03" },
-  { titulo: "Estoque", descricao: "Peças da oficina, entrada por nota, cadastro rápido.", href: "/estoque", numero: "04" },
+  { titulo: "Entrada de veículo", descricao: "Receber a moto, ler a placa e abrir a OS.", href: "/entrada", Ico: IcoEntrada, destaque: true },
+  { titulo: "Ordens de serviço", descricao: "Diagnóstico, execução e entrega.", href: "/ordens", Ico: IcoOrdens },
+  { titulo: "Estoque", descricao: "Peças, nota fiscal e cadastro rápido.", href: "/estoque", Ico: IcoEstoque },
+  { titulo: "Painel", descricao: "Faturamento, OS abertas e giro de peças.", href: "/dashboard", Ico: IcoPainel },
 ];
 
-/**
- * Os 4 painéis da Home SÃO os botões grandes e principais do sistema —
- * por isso usam a placa metálica (`TrailPlateCard`) em vez do vidro
- * fosco genérico. Antes disso havia também um par de atalhos "Nova OS"
- * / "Ver Estoque" boiando num vidro separado embaixo — redundante com
- * os painéis de Entrada e Estoque logo acima, e é exatamente esse tipo
- * de botão pequeno solto que o Christian pediu pra tirar.
- */
 export default function Home() {
   return (
-    <RevealGroup className="flex flex-col gap-8 pt-4">
+    <RevealGroup className="flex flex-col gap-6">
+      <RevealItem>
+        <Saudacao />
+      </RevealItem>
+
+      <RevealItem>
+        <Link href="/entrada" className="vidro-garagem atalho group relative flex items-center gap-4 overflow-hidden p-5">
+          <span aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full" style={{ background: "radial-gradient(circle, rgb(var(--cor-acento-rgb) / .22), transparent 65%)" }} />
+          <span className="atalho-ico h-14 w-14 rounded-2xl"><IcoEntrada size={26} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Ação rápida</span>
+            <span className="font-display mt-0.5 block text-lg uppercase text-zinc-50">Nova entrada</span>
+            <span className="block text-sm text-zinc-400">Fotografe a placa e abra a OS em segundos.</span>
+          </span>
+          <span className="trail-plate grid h-11 w-11 shrink-0 place-items-center !rounded-full"><IcoSeta size={18} /></span>
+        </Link>
+      </RevealItem>
+
       <RevealItem>
         <TrilhaDaMoto />
       </RevealItem>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        {PAINEIS.map((painel) => (
-          <RevealItem key={painel.titulo}>
-            <Link href={painel.href}>
-              <TrailPlateCard numero={painel.numero}>
-                <h2 className="font-display text-lg uppercase tracking-wide text-zinc-900">
-                  {painel.titulo}
-                </h2>
-                <p className="mt-2 text-sm text-zinc-700">{painel.descricao}</p>
-              </TrailPlateCard>
+      <section className="grid gap-3 sm:grid-cols-3">
+        {PAINEIS.filter((p) => !p.destaque).map(({ titulo, descricao, href, Ico }) => (
+          <RevealItem key={href}>
+            <Link href={href} className="vidro-garagem atalho flex h-full items-center gap-4 p-4 sm:flex-col sm:items-start sm:p-5">
+              <span className="atalho-ico shrink-0"><Ico size={21} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-[15px] uppercase text-zinc-50">{titulo}</span>
+                <span className="mt-0.5 block text-sm text-zinc-400">{descricao}</span>
+              </span>
+              <IcoSeta size={18} className="shrink-0 text-zinc-500 sm:hidden" />
             </Link>
           </RevealItem>
         ))}

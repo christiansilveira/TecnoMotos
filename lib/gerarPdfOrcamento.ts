@@ -195,6 +195,19 @@ export async function gerarPdfOrcamento(os: DadosOSParaPdf, itens: ItemOS[], tot
   doc.line(margem, y, largura - margem, y);
   y += 9;
 
+  // Desconto: diferença entre a soma dos itens e o total cobrado
+  const somaItens = itens.reduce((acc, i) => acc + i.quantidade * i.valor_unit, 0);
+  if (somaItens - total > 0.009) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(90, 90, 90);
+    doc.text("Subtotal", margem, y);
+    doc.text(brl(somaItens), largura - margem, y, { align: "right" });
+    y += 6;
+    doc.text("Desconto", margem, y);
+    doc.text(`- ${brl(somaItens - total)}`, largura - margem, y, { align: "right" });
+    y += 8;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(20, 20, 20);

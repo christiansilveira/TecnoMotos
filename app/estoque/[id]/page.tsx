@@ -3,6 +3,8 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Vazio from "@/components/ui/Vazio";
+import { IcoEstoque } from "@/components/icones";
 import PainelVidro from "@/components/ui/PainelVidro";
 import Campo from "@/components/ui/Campo";
 import TrailPlateButton from "@/components/TrailPlateButton";
@@ -128,7 +130,7 @@ export default function EditarProdutoPage({ params }: PageProps<"/estoque/[id]">
   if (!produto) {
     return (
       <PainelVidro className="mt-4 p-8 text-center">
-        <p className="text-sm text-zinc-400">Peça não encontrada.</p>
+        <Vazio icone={<IcoEstoque size={30} />} titulo="Peça não encontrada" texto="Ela pode ter sido removida do estoque." />
         <Link href="/estoque" className="mt-3 inline-block text-sm text-zinc-200 underline">
           Voltar para o estoque
         </Link>
@@ -137,13 +139,13 @@ export default function EditarProdutoPage({ params }: PageProps<"/estoque/[id]">
   }
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <div className="flex flex-col gap-6">
       <Link href="/estoque" className="w-fit text-xs uppercase tracking-wide text-zinc-500 hover:text-zinc-300">
         ← Voltar para Estoque
       </Link>
 
       <div>
-        <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Editar peça</h1>
+        <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Editar peça</h1>
         <p className="mt-1 text-sm text-zinc-400">
           Saldo atual: <span className="font-mono text-zinc-200">{produto.saldo}</span> {produto.unidade} · valor em
           estoque {brl(produto.saldo * produto.preco_custo)}

@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { JetBrains_Mono, Manrope, Rajdhani } from "next/font/google";
+import { Archivo, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
-import GarageGridBackground from "@/components/GarageGridBackground";
-import WheelBackground3D from "@/components/WheelBackground3D";
-import { CreditoRoda3D } from "@/components/CreditoRoda3D";
-import HudDecoracao from "@/components/HudDecoracao";
 import AppHeader from "@/components/AppHeader";
-import NavVoltar from "@/components/NavVoltar";
 import FaixaDemo from "@/components/FaixaDemo";
 import PageTransition from "@/components/PageTransition";
 import AuthGate from "@/components/AuthGate";
-import TemaToggle from "@/components/TemaToggle";
+import NavInferior from "@/components/NavInferior";
 import TemaSync from "@/components/TemaSync";
 
 // Roda antes do React hidratar, direto no <head>, pra cravar o atributo
@@ -38,14 +33,13 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
-// Trocado de Archivo Black (bloco pesado, sem muita personalidade além
-// da grossura) pra Rajdhani: mesma família de fontes técnicas/racing
-// usada em painel de moto e HUD de corrida — pedido do Christian pra
-// modernizar a tipografia de destaque.
-const rajdhani = Rajdhani({
-  variable: "--font-rajdhani",
-  weight: "700",
+// Design "Obsidiana": Archivo com eixo de largura — os títulos usam a
+// versão expandida (font-stretch 125%, ver globals.css), no espírito de
+// painel de moto esportiva premium.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -62,7 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${manrope.variable} ${rajdhani.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${archivo.variable} ${jetbrainsMono.variable} h-full antialiased`}
       // O script inline (SCRIPT_TEMA, roda antes do React hidratar) já
       // grava `data-theme` no <html> a partir do localStorage — o HTML
       // que o servidor mandou nunca tem esse atributo (não tem como
@@ -81,20 +75,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </Script>
         <TemaSync />
         <FaixaDemo />
-        <WheelBackground3D />
-        <GarageGridBackground />
-        <HudDecoracao />
-        <CreditoRoda3D />
-        <NavVoltar />
-        <TemaToggle />
 
         <AppHeader />
 
-        <main className="relative mx-auto max-w-5xl px-4 pb-16">
+        <main className="relative mx-auto max-w-5xl px-4 pb-32 sm:pb-16">
           <AuthGate>
             <PageTransition>{children}</PageTransition>
           </AuthGate>
         </main>
+        <NavInferior />
       </body>
     </html>
   );

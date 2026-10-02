@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Vazio from "@/components/ui/Vazio";
+import { IcoEstoque } from "@/components/icones";
 import { useRouter } from "next/navigation";
 import PainelVidro from "@/components/ui/PainelVidro";
 import TrailPlateButton from "@/components/TrailPlateButton";
@@ -46,13 +48,13 @@ export default function EstoquePage() {
   const criticos = (produtos ?? []).filter((p) => p.situacao !== "ok").length;
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl uppercase tracking-wide text-zinc-50">Estoque</h1>
+          <h1 className="font-display text-[22px] uppercase leading-tight text-zinc-50 sm:text-3xl">Estoque</h1>
           <p className="mt-1 text-sm text-zinc-400">{produtos?.length ?? "…"} peças cadastradas</p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex flex-wrap gap-2">
           <TrailPlateButton tamanho="sm" type="button" onClick={() => router.push("/estoque/cadastro-rapido")}>
             Cadastro Rápido
           </TrailPlateButton>
@@ -66,7 +68,7 @@ export default function EstoquePage() {
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
         placeholder="Buscar peça por nome ou SKU"
-        className="vidro-garagem rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-zinc-400"
+        className="campo-instrumento w-full px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none"
       />
 
       {criticos > 0 && (
@@ -118,7 +120,7 @@ export default function EstoquePage() {
               </RevealItem>
             );
           })}
-          {visiveis.length === 0 && <p className="p-6 text-center text-sm text-zinc-500">Nenhuma peça encontrada.</p>}
+          {visiveis.length === 0 && <PainelVidro><Vazio icone={<IcoEstoque size={30} />} titulo={busca ? "Nada encontrado" : "Estoque vazio"} texto={busca ? `Nenhuma peça com "${busca}". Confira o nome ou o código.` : "Cadastre a primeira peça ou importe uma nota fiscal."} acao={<TrailPlateButton tamanho="sm" type="button" onClick={() => router.push("/estoque/cadastro-rapido")}>Cadastrar peça</TrailPlateButton>} /></PainelVidro>}
         </RevealGroup>
       )}
     </div>

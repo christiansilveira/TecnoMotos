@@ -9,9 +9,9 @@ import { DEMO } from "@/lib/supabase";
 export default function FaixaDemo() {
   if (!DEMO) return null;
   return (
-    <div className="relative z-30 flex items-center justify-center gap-2 border-b border-amber-400/25 bg-[#0b0a06] py-1.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-amber-400/90">
-      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 shadow-[0_0_6px_2px_rgba(251,191,36,0.55)]" />
-      Modo demonstração — configure o Supabase para gravar de verdade
+    <div className="relative z-50 flex items-center justify-center gap-2 border-b border-white/5 bg-black/60 px-4 py-1.5 text-center text-[11px] font-medium text-zinc-400">
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 shadow-[0_0_6px_2px_rgba(251,191,36,0.5)]" />
+      Modo demonstração · os dados não são gravados
     </div>
   );
 }

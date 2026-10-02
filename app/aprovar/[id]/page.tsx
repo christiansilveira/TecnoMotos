@@ -50,7 +50,9 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
       .finally(() => setCarregando(false));
   }, [id]);
 
-  const total = itens.reduce((soma, i) => soma + i.quantidade * i.valor_unit, 0);
+  const subtotal = itens.reduce((soma, i) => soma + i.quantidade * i.valor_unit, 0);
+  const desconto = Math.min(subtotal, Number(os?.valor_desconto || 0));
+  const total = Math.max(0, subtotal - desconto);
 
   const baixarPdf = async () => {
     if (!os) return;
@@ -119,7 +121,7 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
   const cancelado = os.status === "cancelado";
 
   return (
-    <RevealGroup className="flex flex-col gap-6 pt-4">
+    <RevealGroup className="flex flex-col gap-6">
       <RevealItem className="flex items-center justify-between">
         <h1 className="font-mono text-2xl font-bold text-zinc-50">Orçamento OS {String(os.numero).padStart(4, "0")}</h1>
         <BadgeStatus status={os.status} tamanho="md" />
@@ -165,7 +167,7 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
 
       <RevealItem>
         <PainelVidro className="p-5">
-          <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Itens e serviços</h2>
+          <h2 className="font-display text-[13px] uppercase text-zinc-200">Itens e serviços</h2>
           <div className="mt-3 divide-y divide-white/5">
             {itens.length === 0 && <p className="py-3 text-sm text-zinc-500">Nenhum item lançado ainda.</p>}
             {itens.map((i) => (
@@ -180,6 +182,12 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
               </div>
             ))}
           </div>
+          {desconto > 0 && (
+            <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-sm text-zinc-400">
+              <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{brl(subtotal)}</span></div>
+              <div className="flex justify-between"><span>Desconto</span><span className="font-mono text-emerald-400">− {brl(desconto)}</span></div>
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
             <span className="font-display text-sm uppercase text-zinc-200">Total</span>
             <span className="font-mono text-lg font-bold text-zinc-50">{brl(total)}</span>
@@ -207,7 +215,7 @@ export default function PaginaAprovacaoPublica({ params }: { params: Promise<{ i
             </>
           ) : (
             <>
-              <h2 className="font-display text-sm uppercase tracking-wide text-zinc-200">Aprovar orçamento</h2>
+              <h2 className="font-display text-[13px] uppercase text-zinc-200">Aprovar orçamento</h2>
               <p className="mt-2 text-sm text-zinc-400">
                 Digite seu nome completo e CPF e confirme abaixo — isso vale como sua assinatura, aprovando os serviços e
                 valores acima.
